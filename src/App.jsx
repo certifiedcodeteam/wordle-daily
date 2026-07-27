@@ -7,9 +7,13 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -20,14 +24,10 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
+  // Authentication is optional for Wordle Daily. Guests keep local progress.
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
     }
   }
 
@@ -35,6 +35,10 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

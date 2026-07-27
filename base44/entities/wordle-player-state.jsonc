@@ -1,0 +1,21 @@
+{
+  "name": "WordlePlayerState",
+  "type": "object",
+  "properties": {
+    "state_version": {
+      "type": "integer",
+      "description": "Client state schema version"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Merged settings and per-puzzle progress"
+    }
+  },
+  "required": ["state_version", "payload"],
+  "rls": {
+    "create": { "user_condition": { "id": "{{user.id}}" } },
+    "read": { "created_by": "{{user.email}}" },
+    "update": { "created_by": "{{user.email}}" },
+    "delete": { "created_by": "{{user.email}}" }
+  }
+}

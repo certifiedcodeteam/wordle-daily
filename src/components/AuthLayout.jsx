@@ -1,17 +1,22 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#f7f7f4] px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 mb-7 text-xl font-extrabold text-[#20201e] hover:opacity-75">
+            <span className="wordmark-grid" aria-hidden="true"><i /><i /><i /><i /></span>
+            Wordle Daily
+          </Link>
+          <div className="flex items-center justify-center w-12 h-12 rounded-md bg-[#20201e] mx-auto mb-4">
             <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-3xl font-bold text-[#20201e]">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
         </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+        <div className="bg-white rounded-md shadow-sm border border-border p-8">
           {children}
         </div>
         {footer && (

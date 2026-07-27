@@ -1,3 +1,5 @@
+import WordleGame from "@/components/wordle/WordleGame";
+
 export default function Home() {
-  return <div className="min-h-screen bg-[#F9F9F7]" />;
+  return <WordleGame />;
 }

@@ -3,12 +3,33 @@ import { appParams } from '@/lib/app-params';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
-//Create a client with authentication required
-export const base44 = createClient({
+const unavailable = () => Promise.reject(new Error('Base44 is not configured for this local environment'));
+
+const guestClient = {
+  auth: {
+    me: async () => null,
+    isAuthenticated: async () => false,
+    loginViaEmailPassword: unavailable,
+    register: unavailable,
+    verifyOtp: unavailable,
+    resendOtp: unavailable,
+    resetPasswordRequest: unavailable,
+    resetPassword: unavailable,
+    loginWithProvider: () => { throw new Error('Base44 is not configured for this local environment'); },
+    setToken: () => {},
+    logout: () => { window.location.href = '/'; },
+  },
+  entities: new Proxy({}, {
+    get: () => new Proxy({}, { get: () => unavailable }),
+  }),
+};
+
+// Base44 injects the app ID in hosted and linked local environments.
+export const base44 = appId ? createClient({
   appId,
   token,
   functionsVersion,
   serverUrl: '',
   requiresAuth: false,
   appBaseUrl
-});
+}) : guestClient;
