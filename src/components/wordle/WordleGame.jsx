@@ -15,6 +15,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { worldApi } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -330,20 +331,7 @@ export default function WordleGame() {
   };
 
   const deleteAccount = async () => {
-    if (isAuthenticated && user) {
-      try {
-        await base44.entities.WordlePlayerState.deleteMany({ created_by_id: user.id });
-      } catch {
-        showToast("Could not delete account data");
-        return;
-      }
-      try {
-        // Delete the auth profile as well, where supported by the platform.
-        await base44.entities.User.delete(user.id);
-      } catch {
-        // Self-deletion of the auth profile is not supported; game data is already removed.
-      }
-    }
+    if (isAuthenticated && user) await worldApi.deleteAccount();
     showToast("Account data deleted");
     window.setTimeout(() => logout(true), 1200);
   };

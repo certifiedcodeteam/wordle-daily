@@ -13,8 +13,14 @@
     "daily_counters": { "type": "object" },
     "settings": { "type": "object" },
     "last_operation_key": { "type": "string" },
-    "last_operation_result": { "type": "object" }
-    ,"last_utility_operation": { "type": "string" }
+    "last_operation_result": { "type": "object" },
+    "last_operation_reason": { "type": "string" },
+    "last_operation_reference_id": { "type": "string" },
+    "last_operation_delivered": { "type": "boolean" },
+    "last_utility_operation": { "type": "string" },
+    "daily_session_key": { "type": "string" },
+    "daily_session_id": { "type": "string" },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["user_id", "xp_total", "token_balance", "wallet_version", "current_streak", "max_streak", "streak_shields"],
   "rls": {

@@ -18,6 +18,7 @@ const guestClient = {
     loginWithProvider: () => { throw new Error('Base44 is not configured for this local environment'); },
     setToken: () => {},
     logout: () => { window.location.href = '/'; },
+    redirectToLogin: () => { window.location.href = '/login'; },
   },
   entities: new Proxy({}, {
     get: () => new Proxy({}, { get: () => unavailable }),

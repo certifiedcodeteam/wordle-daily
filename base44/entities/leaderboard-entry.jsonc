@@ -10,7 +10,8 @@
     "points": { "type": "integer" },
     "wins": { "type": "integer" },
     "rank": { "type": "integer" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "updated_at": { "type": "string", "format": "date-time" },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["season_id", "user_id", "handle", "division", "cohort", "points", "wins", "rank", "updated_at"],
   "rls": {

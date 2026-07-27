@@ -8,6 +8,8 @@ let musicStep = 0;
 
 function getContext() {
   if (!ctx) {
+    /** @type {typeof AudioContext | undefined} */
+    // @ts-expect-error Safari exposes the prefixed constructor at runtime.
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
     ctx = new AudioCtx();
@@ -16,7 +18,7 @@ function getContext() {
   return ctx;
 }
 
-function tone({ freq, freqEnd, duration = 0.12, type = "sine", gain = 0.08, delay = 0 }) {
+function tone({ freq, freqEnd = null, duration = 0.12, type = "sine", gain = 0.08, delay = 0 }) {
   const audio = getContext();
   if (!audio) return;
   const start = audio.currentTime + delay;

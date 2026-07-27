@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function DeleteAccountDialog({ onConfirm }) {
+export default function DeleteAccountDialog({ onConfirm, className = "secondary-command danger-command" }) {
   const [step, setStep] = useState(0);
   const [deleting, setDeleting] = useState(false);
 
@@ -27,7 +27,7 @@ export default function DeleteAccountDialog({ onConfirm }) {
 
   return (
     <>
-      <button className="secondary-command danger-command" onClick={() => setStep(1)}>
+      <button className={className} onClick={() => setStep(1)}>
         <Trash2 />Delete account
       </button>
       <AlertDialog open={step === 1} onOpenChange={(open) => { if (!open) setStep(0); }}>

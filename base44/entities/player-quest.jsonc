@@ -10,7 +10,8 @@
     "progress": { "type": "integer" },
     "reward_tokens": { "type": "integer" },
     "claimed": { "type": "boolean" },
-    "rerolled": { "type": "boolean" }
+    "rerolled": { "type": "boolean" },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["user_id", "period_key", "quest_key", "title", "target", "progress", "reward_tokens", "claimed", "rerolled"],
   "rls": {

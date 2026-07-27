@@ -29,6 +29,8 @@ export interface CupBracket {
   player_two_checked_in: boolean;
   status: "pending" | "check_in" | "active" | "complete";
   check_in_at: string;
+  activation_status?: "pending" | "working" | "complete";
+  advancement_status?: "pending" | "working" | "complete";
 }
 
 export interface DuelMatch {
@@ -45,6 +47,8 @@ export interface DuelMatch {
   version: number;
   season_id?: string;
   bracket_id?: string;
+  setup_status?: "pending" | "working" | "complete";
+  settlement_status?: "pending" | "working" | "complete";
 }
 
 export interface DuelParticipant {
@@ -57,6 +61,7 @@ export interface DuelParticipant {
   rating_before: number;
   rating_change: number;
   last_seen_at: string;
+  applied_operation_keys?: string[];
 }
 
 export interface GameSession {
@@ -103,6 +108,7 @@ export interface LeaderboardEntry {
   wins: number;
   rank: number;
   updated_at: string;
+  applied_operation_keys?: string[];
 }
 
 export interface LeagueMembership {
@@ -115,6 +121,7 @@ export interface LeagueMembership {
   duel_rating: number;
   rank: number;
   cup_qualified: boolean;
+  applied_operation_keys?: string[];
 }
 
 export interface PlayerAccount {
@@ -130,7 +137,13 @@ export interface PlayerAccount {
   settings?: {};
   last_operation_key?: string;
   last_operation_result?: {};
+  last_operation_reason?: string;
+  last_operation_reference_id?: string;
+  last_operation_delivered?: boolean;
   last_utility_operation?: string;
+  daily_session_key?: string;
+  daily_session_id?: string;
+  applied_operation_keys?: string[];
 }
 
 export interface PlayerInventory {
@@ -153,6 +166,7 @@ export interface PlayerProfile {
   games_played: number;
   games_won: number;
   achievements?: string[];
+  applied_operation_keys?: string[];
 }
 
 export interface PlayerQuest {
@@ -165,6 +179,7 @@ export interface PlayerQuest {
   reward_tokens: number;
   claimed: boolean;
   rerolled: boolean;
+  applied_operation_keys?: string[];
 }
 
 export interface PuzzleSecret {
@@ -187,8 +202,11 @@ export interface WalletTransaction {
   operation_key: string;
   reason: string;
   delta: number;
+  xp?: number;
   resulting_balance: number;
+  resulting_level?: number;
   reference_id?: string;
+  delivery_status?: "pending" | "delivering" | "complete";
 }
 
 export interface WordlePlayerState {
@@ -228,23 +246,24 @@ declare module '@base44/sdk' {
   }
   
   interface FunctionNameRegistry {
-    "game/bootstrap": true;
-    "economy/purchase": true;
-    "game/buy-extra-guess": true;
-    "game/guess": true;
-    "game/status": true;
-    "duel/create-private": true;
-    "game/start": true;
-    "duel/join-private": true;
-    "duel/forfeit": true;
+    "account/delete": true;
     "duel/queue": true;
     "duel/status": true;
+    "duel/create-private": true;
+    "duel/join-private": true;
+    "duel/forfeit": true;
+    "economy/purchase": true;
     "legacy/import": true;
-    "profile/update": true;
-    "tournament/check-in": true;
-    "quests/claim": true;
-    "tournament/enroll": true;
+    "game/bootstrap": true;
+    "game/buy-extra-guess": true;
+    "game/guess": true;
+    "game/start": true;
     "quests/reroll": true;
+    "quests/claim": true;
+    "profile/update": true;
+    "game/status": true;
+    "tournament/check-in": true;
     "tournament/status": true;
+    "tournament/enroll": true;
   }
 }

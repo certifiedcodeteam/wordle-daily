@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ icon: Icon, title, subtitle, footer = null, children }) {
   return (
     <div className="relative min-h-[100dvh] flex items-center justify-center bg-[var(--wd-bg)] px-4 py-10">
       <Link

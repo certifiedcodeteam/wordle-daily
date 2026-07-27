@@ -1,4 +1,4 @@
-import { clientFor, getOrCreatePlayer, handleFunctionError, mutateWallet, requireUser } from "../../../shared/platform.js";
+import { applyEntityOperation, clientFor, findPendingWalletOperation, getOrCreatePlayer, handleFunctionError, mutateWallet, requireUser, runWalletDelivery } from "../../../shared/platform.js";
 import { nicknameValidationError, normalizeNickname, renameCostFor } from "../../../shared/profile-rules.js";
 
 function validateNickname(value: string) {
@@ -28,20 +28,25 @@ Deno.serve(async (req) => {
     const { account, profile } = await getOrCreatePlayer(base44, user);
     const patch: Record<string, string | number> = {};
     let wallet = null;
+    let operationKey = "";
     let renameCost = 0;
+    const pendingRename = hasNickname
+      ? await findPendingWalletOperation(admin, user.id, "profile_rename", profile.id)
+      : null;
 
     if (hasNickname) {
       const nickname = normalizeNickname(body.nickname);
       validateNickname(nickname);
       if (nickname !== profile.handle) {
         const renameCount = Math.max(0, profile.rename_count || 0);
-        renameCost = renameCostFor(renameCount);
+        renameCost = pendingRename ? Math.abs(pendingRename.delta) : renameCostFor(renameCount);
         if (renameCost) {
-          if (account.token_balance < renameCost) {
+          if (!pendingRename && account.token_balance < renameCost) {
             throw Object.assign(new Error("You need 500 coins to rename"), { status: 409, code: "insufficient_tokens" });
           }
+          operationKey = pendingRename?.operation_key || `profile-rename:${user.id}:${renameCount + 1}`;
           wallet = await mutateWallet(base44, account, {
-            operationKey: `profile-rename:${user.id}:${renameCount + 1}`,
+            operationKey,
             delta: -renameCost,
             reason: "profile_rename",
             referenceId: profile.id,
@@ -58,9 +63,14 @@ Deno.serve(async (req) => {
       if (avatarUrl !== profile.avatar_url) patch.avatar_url = avatarUrl;
     }
 
-    const updatedProfile = Object.keys(patch).length
-      ? await admin.PlayerProfile.update(profile.id, patch)
-      : profile;
+    if (wallet) {
+      await runWalletDelivery(admin, account.id, operationKey, wallet, async () => {
+        if (Object.keys(patch).length) await applyEntityOperation(admin.PlayerProfile, profile.id, operationKey, { $set: patch });
+      });
+    } else if (Object.keys(patch).length) {
+      await admin.PlayerProfile.update(profile.id, patch);
+    }
+    const updatedProfile = Object.keys(patch).length ? await admin.PlayerProfile.get(profile.id) : profile;
     console.log(JSON.stringify({ event: "profile_updated", user_id: user.id, renamed: Boolean(patch.handle), avatar_updated: Boolean(patch.avatar_url), rename_cost: renameCost }));
     return Response.json({ profile: updatedProfile, tokenBalance: wallet?.tokenBalance ?? account.token_balance, renameCost });
   } catch (error) { return handleFunctionError(error); }

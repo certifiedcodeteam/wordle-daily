@@ -10,7 +10,8 @@
     "elapsed_ms": { "type": "integer" },
     "rating_before": { "type": "integer" },
     "rating_change": { "type": "integer" },
-    "last_seen_at": { "type": "string", "format": "date-time" }
+    "last_seen_at": { "type": "string", "format": "date-time" },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["match_id", "user_id", "handle", "guesses_used", "status", "rating_before", "rating_change", "last_seen_at"],
   "rls": {

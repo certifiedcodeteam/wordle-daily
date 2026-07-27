@@ -12,7 +12,8 @@
     "peak_division": { "type": "string", "enum": ["bronze", "silver", "gold", "platinum", "diamond"] },
     "games_played": { "type": "integer" },
     "games_won": { "type": "integer" },
-    "achievements": { "type": "array", "items": { "type": "string" } }
+    "achievements": { "type": "array", "items": { "type": "string" } },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["user_id", "handle", "avatar_seed", "level", "peak_division", "games_played", "games_won"],
   "rls": {

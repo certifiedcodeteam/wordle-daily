@@ -14,7 +14,9 @@
     "player_one_checked_in": { "type": "boolean" },
     "player_two_checked_in": { "type": "boolean" },
     "status": { "type": "string", "enum": ["pending", "check_in", "active", "complete"] },
-    "check_in_at": { "type": "string", "format": "date-time" }
+    "check_in_at": { "type": "string", "format": "date-time" },
+    "activation_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "advancement_status": { "type": "string", "enum": ["pending", "working", "complete"] }
   },
   "required": ["season_id", "division", "cohort", "round", "slot", "status", "check_in_at", "player_one_checked_in", "player_two_checked_in"],
   "rls": {

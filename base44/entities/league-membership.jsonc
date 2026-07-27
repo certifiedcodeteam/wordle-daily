@@ -10,7 +10,8 @@
     "league_points": { "type": "integer" },
     "duel_rating": { "type": "integer" },
     "rank": { "type": "integer" },
-    "cup_qualified": { "type": "boolean" }
+    "cup_qualified": { "type": "boolean" },
+    "applied_operation_keys": { "type": "array", "items": { "type": "string" } }
   },
   "required": ["season_id", "user_id", "handle", "division", "cohort", "league_points", "duel_rating", "rank", "cup_qualified"],
   "rls": {

@@ -29,8 +29,8 @@ export async function ensureSeason(base44, user) {
     const seededRating = prior ? 1000 + Math.round((prior.duel_rating - 1000) * 0.5) : 1000;
     const cohortMembers = await admin.LeagueMembership.filter({ season_id: season.id, division }, "created_date", 5000);
     const cohort = Math.floor(cohortMembers.length / 30) + 1;
-    membership = await admin.LeagueMembership.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, league_points: 0, duel_rating: seededRating, rank: cohortMembers.length % 30 + 1, cup_qualified: false });
-    await admin.LeaderboardEntry.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, points: 0, wins: 0, rank: membership.rank, updated_at: new Date().toISOString() });
+    membership = await admin.LeagueMembership.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, league_points: 0, duel_rating: seededRating, rank: cohortMembers.length % 30 + 1, cup_qualified: false, applied_operation_keys: [] });
+    await admin.LeaderboardEntry.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, points: 0, wins: 0, rank: membership.rank, updated_at: new Date().toISOString(), applied_operation_keys: [] });
     if (divisionRank(division) > divisionRank(profile.peak_division)) await admin.PlayerProfile.update(profile.id, { peak_division: division });
   }
   return { season, membership };
@@ -67,6 +67,7 @@ export async function tournamentStatus(base44) {
       season_id: season.id, division: membership.division, cohort: membership.cohort, round: 1, slot: slot + 1,
       player_one_id: leaderboard[left].user_id, player_two_id: leaderboard[right].user_id,
       status: "check_in", check_in_at: checkInAt, player_one_checked_in: false, player_two_checked_in: false,
+      activation_status: "pending", advancement_status: "pending",
     })));
     for (const entry of leaderboard.slice(0, 8)) {
       const member = (await admin.LeagueMembership.filter({ season_id: season.id, user_id: entry.user_id }, "-created_date", 1))[0];

@@ -14,7 +14,9 @@
     "deadline": { "type": "string", "format": "date-time" },
     "version": { "type": "integer" },
     "season_id": { "type": "string" },
-    "bracket_id": { "type": "string" }
+    "bracket_id": { "type": "string" },
+    "setup_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "settlement_status": { "type": "string", "enum": ["pending", "working", "complete"] }
   },
   "required": ["kind", "status", "player_one_id", "version"],
   "rls": {

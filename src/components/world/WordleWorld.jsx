@@ -15,6 +15,7 @@ import {
   SeasonLeagueInfoDialog, SettingsPanel, ShopItemInfoDialog,
 } from "@/components/world/WorldChrome";
 import { useGamePreferences } from "@/components/world/useGamePreferences";
+import DeleteAccountDialog from "@/components/wordle/DeleteAccountDialog";
 import "@/components/world/world.css";
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
@@ -611,6 +612,21 @@ function ProfilePanel({ data, onRefresh, onLogout }) {
     }
   };
 
+  const deleteAccount = async () => {
+    setBusy("delete");
+    setMessage(null);
+    try {
+      await worldApi.deleteAccount();
+      window.localStorage.removeItem("wordle-world-guest-daily");
+      onLogout();
+    } catch (nextError) {
+      setMessage({ type: "error", text: nextError.message });
+      throw nextError;
+    } finally {
+      setBusy("");
+    }
+  };
+
   return <><div className="profile-panel">
     <div className={`profile-emblem profile-avatar ${busy === "avatar" ? "is-busy" : ""}`}>
       <CircleUserRound />
@@ -628,6 +644,7 @@ function ProfilePanel({ data, onRefresh, onLogout }) {
     {message && <p className={`profile-update-message is-${message.type}`} role={message.type === "error" ? "alert" : "status"}>{message.text}</p>}
     <dl><div><dt><Zap />XP</dt><dd>{account?.xp_total || 0}</dd></div><div><dt><Flame />Streak</dt><dd>{account?.current_streak || 0}</dd></div><div><dt>Peak <button type="button" className="profile-info-button" onClick={() => setInfoTopic("peak")} aria-label="How peak division works" title="How peak division works"><Info /></button></dt><dd>{profile?.peak_division || "bronze"}</dd></div><div><dt>Wins</dt><dd>{profile?.games_won || 0}</dd></div></dl>
     <button className="secondary-world-command" onClick={onLogout}>Log out</button>
+    <DeleteAccountDialog onConfirm={deleteAccount} className="secondary-world-command danger-command" />
   </div><ProgressionInfoDialog topic={infoTopic} account={account} profile={profile} onClose={() => setInfoTopic(null)} /></>;
 }
 

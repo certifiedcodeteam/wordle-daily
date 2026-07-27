@@ -21,6 +21,7 @@ export const worldApi = {
   buyExtraGuess: (sessionId) => invoke("game/buy-extra-guess", { sessionId, requestId: crypto.randomUUID() }),
   purchase: (itemId) => invoke("economy/purchase", { itemId, requestId: crypto.randomUUID() }),
   updateProfile: (changes) => invoke("profile/update", changes),
+  deleteAccount: () => invoke("account/delete"),
   uploadAvatar: async (file) => {
     try {
       const result = await base44.integrations.Core.UploadFile({ file });

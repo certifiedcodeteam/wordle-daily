@@ -12,6 +12,6 @@
     "create": { "user_condition": { "role": "admin" } },
     "read": true,
     "update": false,
-    "delete": false
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }
