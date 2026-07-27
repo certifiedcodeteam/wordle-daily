@@ -1,0 +1,26 @@
+{
+  "name": "PlayerAccount",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "xp_total": { "type": "integer" },
+    "token_balance": { "type": "integer" },
+    "wallet_version": { "type": "integer" },
+    "current_streak": { "type": "integer" },
+    "max_streak": { "type": "integer" },
+    "last_daily_key": { "type": "string" },
+    "streak_shields": { "type": "integer" },
+    "daily_counters": { "type": "object" },
+    "settings": { "type": "object" },
+    "last_operation_key": { "type": "string" },
+    "last_operation_result": { "type": "object" }
+    ,"last_utility_operation": { "type": "string" }
+  },
+  "required": ["user_id", "xp_total", "token_balance", "wallet_version", "current_streak", "max_streak", "streak_shields"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

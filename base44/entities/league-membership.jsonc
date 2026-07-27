@@ -1,0 +1,22 @@
+{
+  "name": "LeagueMembership",
+  "type": "object",
+  "properties": {
+    "season_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "handle": { "type": "string" },
+    "division": { "type": "string", "enum": ["bronze", "silver", "gold", "platinum", "diamond"] },
+    "cohort": { "type": "integer" },
+    "league_points": { "type": "integer" },
+    "duel_rating": { "type": "integer" },
+    "rank": { "type": "integer" },
+    "cup_qualified": { "type": "boolean" }
+  },
+  "required": ["season_id", "user_id", "handle", "division", "cohort", "league_points", "duel_rating", "rank", "cup_qualified"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

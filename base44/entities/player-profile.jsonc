@@ -1,0 +1,22 @@
+{
+  "name": "PlayerProfile",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "handle": { "type": "string" },
+    "avatar_seed": { "type": "string" },
+    "level": { "type": "integer" },
+    "equipped_cosmetic": { "type": "string" },
+    "peak_division": { "type": "string", "enum": ["bronze", "silver", "gold", "platinum", "diamond"] },
+    "games_played": { "type": "integer" },
+    "games_won": { "type": "integer" },
+    "achievements": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["user_id", "handle", "avatar_seed", "level", "peak_division", "games_played", "games_won"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

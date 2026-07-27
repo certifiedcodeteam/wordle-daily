@@ -22,6 +22,9 @@ const guestClient = {
   entities: new Proxy({}, {
     get: () => new Proxy({}, { get: () => unavailable }),
   }),
+  functions: { invoke: unavailable, fetch: unavailable },
+  analytics: { track: () => {} },
+  appLogs: { logUserInApp: async () => {} },
 };
 
 // Base44 injects the app ID in hosted and linked local environments.

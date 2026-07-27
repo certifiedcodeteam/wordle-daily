@@ -1,0 +1,18 @@
+{
+  "name": "PlayerInventory",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "item_key": { "type": "string" },
+    "item_type": { "type": "string", "enum": ["cosmetic", "utility", "badge"] },
+    "quantity": { "type": "integer" },
+    "acquired_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["user_id", "item_key", "item_type", "quantity", "acquired_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

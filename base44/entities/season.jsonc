@@ -1,0 +1,19 @@
+{
+  "name": "Season",
+  "type": "object",
+  "properties": {
+    "key": { "type": "string" },
+    "name": { "type": "string" },
+    "status": { "type": "string", "enum": ["upcoming", "active", "cup", "complete"] },
+    "starts_at": { "type": "string", "format": "date-time" },
+    "league_ends_at": { "type": "string", "format": "date-time" },
+    "ends_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["key", "name", "status", "starts_at", "league_ends_at", "ends_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

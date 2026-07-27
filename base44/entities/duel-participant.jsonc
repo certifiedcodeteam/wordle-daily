@@ -1,0 +1,22 @@
+{
+  "name": "DuelParticipant",
+  "type": "object",
+  "properties": {
+    "match_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "handle": { "type": "string" },
+    "guesses_used": { "type": "integer" },
+    "status": { "type": "string", "enum": ["ready", "playing", "won", "lost", "forfeit"] },
+    "elapsed_ms": { "type": "integer" },
+    "rating_before": { "type": "integer" },
+    "rating_change": { "type": "integer" },
+    "last_seen_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["match_id", "user_id", "handle", "guesses_used", "status", "rating_before", "rating_change", "last_seen_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

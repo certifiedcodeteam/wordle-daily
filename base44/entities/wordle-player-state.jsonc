@@ -2,6 +2,10 @@
   "name": "WordlePlayerState",
   "type": "object",
   "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner ID for imported legacy records"
+    },
     "state_version": {
       "type": "integer",
       "description": "Client state schema version"
@@ -13,9 +17,9 @@
   },
   "required": ["state_version", "payload"],
   "rls": {
-    "create": { "user_condition": { "id": "{{user.id}}" } },
-    "read": { "created_by": "{{user.email}}" },
-    "update": { "created_by": "{{user.email}}" },
-    "delete": { "created_by": "{{user.email}}" }
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "created_by": "{{user.email}}" }, { "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
   }
 }

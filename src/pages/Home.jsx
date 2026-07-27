@@ -1,5 +1,5 @@
-import WordleGame from "@/components/wordle/WordleGame";
+import WordleWorld from "@/components/world/WordleWorld";
 
 export default function Home() {
-  return <WordleGame />;
+  return <WordleWorld />;
 }

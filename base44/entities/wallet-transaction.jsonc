@@ -1,0 +1,19 @@
+{
+  "name": "WalletTransaction",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "operation_key": { "type": "string" },
+    "reason": { "type": "string" },
+    "delta": { "type": "integer" },
+    "resulting_balance": { "type": "integer" },
+    "reference_id": { "type": "string" }
+  },
+  "required": ["user_id", "operation_key", "reason", "delta", "resulting_balance"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": false,
+    "delete": false
+  }
+}

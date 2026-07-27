@@ -1,0 +1,22 @@
+{
+  "name": "LeaderboardEntry",
+  "type": "object",
+  "properties": {
+    "season_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "handle": { "type": "string" },
+    "division": { "type": "string" },
+    "cohort": { "type": "integer" },
+    "points": { "type": "integer" },
+    "wins": { "type": "integer" },
+    "rank": { "type": "integer" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["season_id", "user_id", "handle", "division", "cohort", "points", "wins", "rank", "updated_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

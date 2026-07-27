@@ -1,0 +1,26 @@
+{
+  "name": "CupBracket",
+  "type": "object",
+  "properties": {
+    "season_id": { "type": "string" },
+    "division": { "type": "string" },
+    "cohort": { "type": "integer" },
+    "round": { "type": "integer" },
+    "slot": { "type": "integer" },
+    "player_one_id": { "type": "string" },
+    "player_two_id": { "type": "string" },
+    "match_id": { "type": "string" },
+    "winner_user_id": { "type": "string" },
+    "player_one_checked_in": { "type": "boolean" },
+    "player_two_checked_in": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["pending", "check_in", "active", "complete"] },
+    "check_in_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["season_id", "division", "cohort", "round", "slot", "status", "check_in_at", "player_one_checked_in", "player_two_checked_in"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

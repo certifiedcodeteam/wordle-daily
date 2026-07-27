@@ -1,0 +1,22 @@
+{
+  "name": "PlayerQuest",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "period_key": { "type": "string" },
+    "quest_key": { "type": "string" },
+    "title": { "type": "string" },
+    "target": { "type": "integer" },
+    "progress": { "type": "integer" },
+    "reward_tokens": { "type": "integer" },
+    "claimed": { "type": "boolean" },
+    "rerolled": { "type": "boolean" }
+  },
+  "required": ["user_id", "period_key", "quest_key", "title", "target", "progress", "reward_tokens", "claimed", "rerolled"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

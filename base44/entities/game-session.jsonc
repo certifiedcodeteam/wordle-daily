@@ -1,0 +1,33 @@
+{
+  "name": "GameSession",
+  "type": "object",
+  "properties": {
+    "owner_user_id": { "type": "string" },
+    "match_id": { "type": "string" },
+    "guest": { "type": "boolean" },
+    "mode": { "type": "string", "enum": ["daily", "endless", "rush", "duel"] },
+    "puzzle_key": { "type": "string" },
+    "puzzle_number": { "type": "integer" },
+    "status": { "type": "string", "enum": ["playing", "won", "lost", "expired", "forfeit"] },
+    "guesses_used": { "type": "integer" },
+    "max_guesses": { "type": "integer" },
+    "round_number": { "type": "integer" },
+    "score": { "type": "integer" },
+    "solved_words": { "type": "integer" },
+    "hard_mode": { "type": "boolean" },
+    "reward_settled": { "type": "boolean" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "deadline": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer" },
+    "last_request_id": { "type": "string" },
+    "last_request_result": { "type": "object" }
+  },
+  "required": ["guest", "mode", "puzzle_key", "puzzle_number", "status", "guesses_used", "max_guesses", "round_number", "score", "solved_words", "hard_mode", "reward_settled", "started_at", "version"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.owner_user_id": "{{user.id}}" }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

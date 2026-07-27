@@ -1,0 +1,9 @@
+{
+  "name": "Wordle World",
+  "short_name": "Wordle World",
+  "description": "Daily words, endless runs, live duels, and seasonal leagues.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#faf9f7"
+}

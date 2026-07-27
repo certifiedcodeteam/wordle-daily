@@ -1,0 +1,17 @@
+{
+  "name": "AchievementUnlock",
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "achievement_key": { "type": "string" },
+    "title": { "type": "string" },
+    "unlocked_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["user_id", "achievement_key", "title", "unlocked_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": true,
+    "update": false,
+    "delete": false
+  }
+}
