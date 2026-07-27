@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
   Delete as BackspaceIcon,
@@ -47,6 +47,7 @@ import {
   validateHardMode,
 } from "@/lib/wordle/game";
 import { loadLocalState, saveLocalState } from "@/lib/wordle/storage";
+import DeleteAccountDialog from "@/components/wordle/DeleteAccountDialog";
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 
@@ -62,7 +63,9 @@ export default function WordleGame() {
   const { user, isAuthenticated, logout } = useAuth();
   const [state, setState] = useState(initialState);
   const [clock, setClock] = useState(() => new Date());
-  const [modal, setModal] = useState(() => (loadLocalState().seenWelcome ? null : "welcome"));
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [welcomeOpen, setWelcomeOpen] = useState(() => !loadLocalState().seenWelcome);
+  const modal = searchParams.get("modal");
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [shakeRow, setShakeRow] = useState(null);
@@ -141,6 +144,14 @@ export default function WordleGame() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), duration);
   }, []);
 
+  const openModal = useCallback((name) => {
+    setSearchParams({ modal: name });
+  }, [setSearchParams]);
+
+  const closeModal = useCallback(() => {
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
+
   const updateState = useCallback((transform) => {
     setState((current) => touchState(current, transform(current)));
   }, []);
@@ -197,17 +208,17 @@ export default function WordleGame() {
         if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           confetti({ particleCount: 110, spread: 68, origin: { y: 0.62 }, colors: ["#4f8f63", "#d4a853", "#f7f6f1"] });
         }
-        window.setTimeout(() => setModal("stats"), 900);
+        window.setTimeout(() => openModal("stats"), 900);
       } else if (lost) {
         showToast(puzzle.answer.toUpperCase(), 2200);
-        window.setTimeout(() => setModal("stats"), 1000);
+        window.setTimeout(() => openModal("stats"), 1000);
       }
     }, 1500);
-  }, [game, isFinished, puzzle.answer, revealingRow, settings.hardMode, shake, showToast, updateGame]);
+  }, [game, isFinished, puzzle.answer, revealingRow, settings.hardMode, shake, showToast, updateGame, openModal]);
 
   const handleKey = useCallback((key, physical = false) => {
     if (physical && settings.onscreenOnly) return;
-    if (modal || menuOpen || isFinished || revealingRow !== null) return;
+    if (modal || welcomeOpen || menuOpen || isFinished || revealingRow !== null) return;
     if (key === "Enter") {
       submitGuess();
       return;
@@ -219,7 +230,7 @@ export default function WordleGame() {
     if (/^[a-zA-Z]$/.test(key) && game.draft.length < COLS) {
       updateGame({ ...game, draft: `${game.draft}${key.toLowerCase()}`, updatedAt: new Date().toISOString() });
     }
-  }, [game, isFinished, menuOpen, modal, revealingRow, settings.onscreenOnly, submitGuess, updateGame]);
+  }, [game, isFinished, menuOpen, modal, welcomeOpen, revealingRow, settings.onscreenOnly, submitGuess, updateGame]);
 
   useEffect(() => {
     const listener = (event) => {
@@ -243,7 +254,8 @@ export default function WordleGame() {
 
   const completeWelcome = () => {
     setState((current) => touchState(current, { seenWelcome: true }));
-    setModal("help");
+    setWelcomeOpen(false);
+    openModal("help");
   };
 
   const share = async () => {
@@ -262,8 +274,21 @@ export default function WordleGame() {
   };
 
   const openAccount = () => {
-    if (isAuthenticated) setModal("account");
+    if (isAuthenticated) openModal("account");
     else navigate("/login");
+  };
+
+  const deleteAccount = async () => {
+    if (isAuthenticated && user) {
+      try {
+        await base44.entities.WordlePlayerState.deleteMany({ created_by_id: user.id });
+      } catch {
+        showToast("Could not delete account data");
+        return;
+      }
+    }
+    showToast("Account data deleted");
+    window.setTimeout(() => logout(true), 1200);
   };
 
   const rootClass = [
@@ -277,9 +302,9 @@ export default function WordleGame() {
       <a className="skip-link" href="#wordle-board">Skip to game</a>
       <Header
         onMenu={() => setMenuOpen(true)}
-        onStats={() => setModal("stats")}
-        onHelp={() => setModal("help")}
-        onSettings={() => setModal("settings")}
+        onStats={() => openModal("stats")}
+        onHelp={() => openModal("help")}
+        onSettings={() => openModal("settings")}
         onAccount={openAccount}
         signedIn={isAuthenticated}
       />
@@ -307,16 +332,16 @@ export default function WordleGame() {
       <AppMenu
         open={menuOpen}
         onOpenChange={setMenuOpen}
-        onSelect={(target) => { setMenuOpen(false); setModal(target); }}
+        onSelect={(target) => { setMenuOpen(false); openModal(target); }}
         onAccount={openAccount}
         signedIn={isAuthenticated}
         syncStatus={syncStatus}
       />
-      <WelcomeModal open={modal === "welcome"} onClose={completeWelcome} puzzle={puzzle} />
-      <HelpModal open={modal === "help"} onOpenChange={(open) => setModal(open ? "help" : null)} />
+      <WelcomeModal open={welcomeOpen} onClose={completeWelcome} puzzle={puzzle} />
+      <HelpModal open={modal === "help"} onOpenChange={(open) => (open ? openModal("help") : closeModal())} />
       <SettingsModal
         open={modal === "settings"}
-        onOpenChange={(open) => setModal(open ? "settings" : null)}
+        onOpenChange={(open) => (open ? openModal("settings") : closeModal())}
         settings={settings}
         setSetting={setSetting}
         hardModeLocked={game.guesses.length > 0}
@@ -324,7 +349,7 @@ export default function WordleGame() {
       />
       <StatsModal
         open={modal === "stats"}
-        onOpenChange={(open) => setModal(open ? "stats" : null)}
+        onOpenChange={(open) => (open ? openModal("stats") : closeModal())}
         stats={stats}
         game={game}
         answer={puzzle.answer}
@@ -335,10 +360,11 @@ export default function WordleGame() {
       />
       <AccountModal
         open={modal === "account"}
-        onOpenChange={(open) => setModal(open ? "account" : null)}
+        onOpenChange={(open) => (open ? openModal("account") : closeModal())}
         user={user}
         syncStatus={syncStatus}
         onLogout={() => logout(true)}
+        onDeleteAccount={deleteAccount}
       />
     </div>
   );
@@ -596,7 +622,7 @@ function Distribution({ values }) {
   );
 }
 
-function AccountModal({ open, onOpenChange, user, syncStatus, onLogout }) {
+function AccountModal({ open, onOpenChange, user, syncStatus, onLogout, onDeleteAccount }) {
   return (
     <ModalFrame open={open} onOpenChange={onOpenChange} title="Account" className="account-dialog">
       <div className="account-summary">
@@ -605,6 +631,7 @@ function AccountModal({ open, onOpenChange, user, syncStatus, onLogout }) {
       </div>
       <div className="account-sync">{syncStatus === "synced" ? <Cloud /> : <CloudOff />}<span>{syncLabel(syncStatus)}</span></div>
       <button className="secondary-command" onClick={onLogout}><LogOut />Log out</button>
+      <DeleteAccountDialog onConfirm={onDeleteAccount} />
     </ModalFrame>
   );
 }

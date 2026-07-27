@@ -112,7 +112,12 @@ export function createDefaultState(now = new Date()) {
     updatedAt: now.toISOString(),
     settingsUpdatedAt: now.toISOString(),
     seenWelcome: false,
-    settings: { hardMode: false, darkMode: false, highContrast: false, onscreenOnly: false },
+    settings: {
+      hardMode: false,
+      darkMode: typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches,
+      highContrast: false,
+      onscreenOnly: false,
+    },
     games: {},
   };
 }
