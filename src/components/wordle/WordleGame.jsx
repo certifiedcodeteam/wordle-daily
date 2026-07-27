@@ -111,9 +111,9 @@ export default function WordleGame() {
   useEffect(() => {
     document.documentElement.classList.toggle("wordle-dark", settings.darkMode);
     document.documentElement.classList.toggle("wordle-contrast", settings.highContrast);
-    return () => {
-      document.documentElement.classList.remove("wordle-dark", "wordle-contrast");
-    };
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute("content", settings.darkMode ? "#1b1c19" : "#f7f7f4");
+    // No cleanup: the theme classes persist so auth and error screens stay themed.
   }, [settings.darkMode, settings.highContrast]);
 
   useEffect(() => {
