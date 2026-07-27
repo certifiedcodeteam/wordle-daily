@@ -21,8 +21,26 @@ module.exports = {
   				foreground: 'hsl(var(--popover-foreground))'
   			},
   			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
+  				DEFAULT: 'rgb(var(--primary))',
+  				light: 'rgb(var(--primary-light))',
+  				dark: 'rgb(var(--primary-dark))',
   				foreground: 'hsl(var(--primary-foreground))'
+  			},
+  			'tooltip-foreground': 'rgb(var(--tooltip-foreground))',
+  			'background-light': 'rgb(var(--background-light))',
+  			'background-dark': 'rgb(var(--background-dark))',
+  			gray: {
+  				'50': 'rgb(var(--gray-50))',
+  				'100': 'rgb(var(--gray-100))',
+  				'200': 'rgb(var(--gray-200))',
+  				'300': 'rgb(var(--gray-300))',
+  				'400': 'rgb(var(--gray-400))',
+  				'500': 'rgb(var(--gray-500))',
+  				'600': 'rgb(var(--gray-600))',
+  				'700': 'rgb(var(--gray-700))',
+  				'800': 'rgb(var(--gray-800))',
+  				'900': 'rgb(var(--gray-900))',
+  				'950': 'rgb(var(--gray-950))'
   			},
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',

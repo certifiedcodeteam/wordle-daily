@@ -20,14 +20,30 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 40 23% 97%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --primary: 255 106 0;
+    --primary-light: 255 142 93;
+    --primary-dark: 255 106 0;
     --primary-foreground: 0 0% 98%;
+    --tooltip-foreground: 255 255 255;
+    --background-light: 250 249 247;
+    --background-dark: 30 30 36;
+    --gray-50: 250 246 242;
+    --gray-100: 245 241 238;
+    --gray-200: 230 225 222;
+    --gray-300: 213 209 206;
+    --gray-400: 166 161 158;
+    --gray-500: 119 115 111;
+    --gray-600: 87 83 79;
+    --gray-700: 70 65 62;
+    --gray-800: 45 40 37;
+    --gray-900: 30 26 22;
+    --gray-950: 17 13 10;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
@@ -60,14 +76,14 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 240 9% 13%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 255 106 0;
+    --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -96,37 +112,37 @@
 }
 
 :root {
-  --wd-bg: #f7f7f4;
+  --wd-bg: #faf9f7;
   --wd-surface: #ffffff;
-  --wd-text: #20201e;
-  --wd-muted: #6d6d68;
-  --wd-border: #d8d8d2;
-  --wd-key: #d9ddd9;
-  --wd-key-text: #20201e;
+  --wd-text: #1e1a16;
+  --wd-muted: #77736f;
+  --wd-border: #e6e1de;
+  --wd-key: #e6e1de;
+  --wd-key-text: #1e1a16;
   --wd-correct: #568f67;
   --wd-present: #c7a449;
-  --wd-absent: #737771;
-  --wd-accent: #2e6e49;
-  --wd-shadow: 0 18px 55px rgba(45, 50, 45, 0.17);
+  --wd-absent: #77736f;
+  --wd-accent: #ff6a00;
+  --wd-shadow: 0 18px 55px rgba(45, 40, 37, 0.17);
 }
 
 html.wordle-dark {
-  --background: 72 5% 10%;
-  --foreground: 60 10% 94%;
-  --card: 70 5% 13%;
-  --card-foreground: 60 10% 94%;
-  --popover: 70 5% 13%;
-  --popover-foreground: 60 10% 94%;
-  --border: 70 4% 25%;
-  --input: 70 4% 25%;
-  --wd-bg: #1b1c19;
-  --wd-surface: #242521;
-  --wd-text: #f1f1ec;
-  --wd-muted: #a8aaa2;
-  --wd-border: #454740;
-  --wd-key: #555950;
-  --wd-key-text: #f5f5ef;
-  --wd-absent: #4d504a;
+  --background: 240 9% 13%;
+  --foreground: 30 44% 96%;
+  --card: 22 10% 16%;
+  --card-foreground: 30 44% 96%;
+  --popover: 22 10% 16%;
+  --popover-foreground: 30 44% 96%;
+  --border: 22 6% 26%;
+  --input: 22 6% 26%;
+  --wd-bg: #1e1e24;
+  --wd-surface: #2d2825;
+  --wd-text: #faf6f2;
+  --wd-muted: #a6a19e;
+  --wd-border: #46413e;
+  --wd-key: #57534f;
+  --wd-key-text: #faf6f2;
+  --wd-absent: #46413e;
   --wd-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
 }
 
