@@ -66,7 +66,7 @@ export default function WordleGame() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [welcomeOpen, setWelcomeOpen] = useState(() => !loadLocalState().seenWelcome);
   const modal = searchParams.get("modal");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const menuOpen = modal === "menu";
   const [toast, setToast] = useState(null);
   const [shakeRow, setShakeRow] = useState(null);
   const [revealingRow, setRevealingRow] = useState(null);
@@ -95,6 +95,18 @@ export default function WordleGame() {
   }, [puzzle.date]);
 
   useEffect(() => saveLocalState(state), [state]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = (event) => {
+      setState((current) => {
+        if (current.settings.darkModeUserSet) return current;
+        return touchState(current, { settings: { ...current.settings, darkMode: event.matches } });
+      });
+    };
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("wordle-dark", settings.darkMode);
@@ -218,7 +230,7 @@ export default function WordleGame() {
 
   const handleKey = useCallback((key, physical = false) => {
     if (physical && settings.onscreenOnly) return;
-    if (modal || welcomeOpen || menuOpen || isFinished || revealingRow !== null) return;
+    if (modal || welcomeOpen || isFinished || revealingRow !== null) return;
     if (key === "Enter") {
       submitGuess();
       return;
@@ -230,7 +242,7 @@ export default function WordleGame() {
     if (/^[a-zA-Z]$/.test(key) && game.draft.length < COLS) {
       updateGame({ ...game, draft: `${game.draft}${key.toLowerCase()}`, updatedAt: new Date().toISOString() });
     }
-  }, [game, isFinished, menuOpen, modal, welcomeOpen, revealingRow, settings.onscreenOnly, submitGuess, updateGame]);
+  }, [game, isFinished, modal, welcomeOpen, revealingRow, settings.onscreenOnly, submitGuess, updateGame]);
 
   useEffect(() => {
     const listener = (event) => {
@@ -247,7 +259,11 @@ export default function WordleGame() {
   const setSetting = (name, value) => {
     const now = new Date().toISOString();
     setState((current) => touchState(current, {
-      settings: { ...current.settings, [name]: value },
+      settings: {
+        ...current.settings,
+        [name]: value,
+        ...(name === "darkMode" ? { darkModeUserSet: true } : {}),
+      },
       settingsUpdatedAt: now,
     }));
   };
@@ -307,7 +323,7 @@ export default function WordleGame() {
     <div className={rootClass}>
       <a className="skip-link" href="#wordle-board">Skip to game</a>
       <Header
-        onMenu={() => setMenuOpen(true)}
+        onMenu={() => openModal("menu")}
         onStats={() => openModal("stats")}
         onHelp={() => openModal("help")}
         onSettings={() => openModal("settings")}
@@ -337,8 +353,8 @@ export default function WordleGame() {
 
       <AppMenu
         open={menuOpen}
-        onOpenChange={setMenuOpen}
-        onSelect={(target) => { setMenuOpen(false); openModal(target); }}
+        onOpenChange={(open) => (open ? openModal("menu") : closeModal())}
+        onSelect={(target) => openModal(target)}
         onAccount={openAccount}
         signedIn={isAuthenticated}
         syncStatus={syncStatus}
