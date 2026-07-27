@@ -47,6 +47,17 @@ import {
   validateHardMode,
 } from "@/lib/wordle/game";
 import { loadLocalState, saveLocalState } from "@/lib/wordle/storage";
+import {
+  playInvalid,
+  playKey,
+  playLose,
+  playReveal,
+  playWin,
+  setMusicEnabled,
+  setSoundEnabled,
+  stopMusic,
+  unlockAudio,
+} from "@/lib/wordle/audio";
 import DeleteAccountDialog from "@/components/wordle/DeleteAccountDialog";
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
@@ -106,6 +117,22 @@ export default function WordleGame() {
     };
     media.addEventListener("change", listener);
     return () => media.removeEventListener("change", listener);
+  }, []);
+
+  useEffect(() => {
+    setSoundEnabled(settings.soundEffects);
+    setMusicEnabled(settings.backgroundMusic);
+  }, [settings.soundEffects, settings.backgroundMusic]);
+
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      stopMusic();
+    };
   }, []);
 
   useEffect(() => {
@@ -183,11 +210,13 @@ export default function WordleGame() {
     if (guess.length < COLS) {
       showToast("Not enough letters");
       shake();
+      playInvalid();
       return;
     }
     if (!isValidGuess(guess)) {
       showToast("Not in word list");
       shake();
+      playInvalid();
       return;
     }
     if (settings.hardMode) {
@@ -195,6 +224,7 @@ export default function WordleGame() {
       if (hardModeError) {
         showToast(hardModeError);
         shake();
+        playInvalid();
         return;
       }
     }
@@ -213,15 +243,18 @@ export default function WordleGame() {
     };
     updateGame(nextGame);
     setRevealingRow(guesses.length - 1);
+    playReveal();
     window.setTimeout(() => {
       setRevealingRow(null);
       if (won) {
+        playWin();
         showToast(winMessage(guesses.length), 1300);
         if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           confetti({ particleCount: 110, spread: 68, origin: { y: 0.62 }, colors: ["#4f8f63", "#d4a853", "#f7f6f1"] });
         }
         window.setTimeout(() => openModal("stats"), 900);
       } else if (lost) {
+        playLose();
         showToast(puzzle.answer.toUpperCase(), 2200);
         window.setTimeout(() => openModal("stats"), 1000);
       }
@@ -236,10 +269,12 @@ export default function WordleGame() {
       return;
     }
     if (key === "Backspace") {
+      playKey();
       updateGame({ ...game, draft: game.draft.slice(0, -1), updatedAt: new Date().toISOString() });
       return;
     }
     if (/^[a-zA-Z]$/.test(key) && game.draft.length < COLS) {
+      playKey();
       updateGame({ ...game, draft: `${game.draft}${key.toLowerCase()}`, updatedAt: new Date().toISOString() });
     }
   }, [game, isFinished, modal, welcomeOpen, revealingRow, settings.onscreenOnly, submitGuess, updateGame]);
@@ -575,6 +610,8 @@ function SettingsModal({ open, onOpenChange, settings, setSetting, hardModeLocke
     ["darkMode", "Dark theme", "Use a darker palette throughout the game."],
     ["highContrast", "High contrast", "Use blue and orange tile colors."],
     ["onscreenOnly", "Onscreen keyboard only", "Ignore physical keyboard input for assistive workflows."],
+    ["soundEffects", "Sound effects", "Play sounds for key presses, reveals, and results."],
+    ["backgroundMusic", "Background music", "Play a gentle ambient melody while you play."],
   ];
   return (
     <ModalFrame open={open} onOpenChange={onOpenChange} title="Settings" className="settings-dialog">

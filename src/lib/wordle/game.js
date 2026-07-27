@@ -117,6 +117,8 @@ export function createDefaultState(now = new Date()) {
       darkMode: typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches,
       highContrast: false,
       onscreenOnly: false,
+      soundEffects: true,
+      backgroundMusic: false,
     },
     games: {},
   };
