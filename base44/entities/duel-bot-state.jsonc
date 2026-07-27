@@ -1,0 +1,23 @@
+{
+  "name": "DuelBotState",
+  "type": "object",
+  "properties": {
+    "match_id": { "type": "string" },
+    "participant_id": { "type": "string" },
+    "persona_key": { "type": "string" },
+    "handle": { "type": "string" },
+    "avatar_seed": { "type": "string" },
+    "division": { "type": "string" },
+    "rating": { "type": "integer" },
+    "will_solve": { "type": "boolean" },
+    "target_guesses": { "type": "integer" },
+    "schedule_ms": { "type": "array", "items": { "type": "integer" } }
+  },
+  "required": ["match_id", "participant_id", "persona_key", "handle", "avatar_seed", "division", "rating", "will_solve", "target_guesses", "schedule_ms"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

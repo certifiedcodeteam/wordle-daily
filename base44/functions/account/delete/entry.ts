@@ -38,14 +38,19 @@ Deno.serve(async (req) => {
       if (match.player_one_id === user.id) patch.player_one_id = anonymousId;
       if (match.player_two_id === user.id) patch.player_two_id = anonymousId;
       if (match.winner_user_id === user.id) patch.winner_user_id = anonymousId;
-      if (["waiting", "active"].includes(match.status)) patch.status = "cancelled";
+      if (["waiting", "lobby", "countdown", "active"].includes(match.status)) patch.status = "cancelled";
       await admin.DuelMatch.update(match.id, patch);
     }
 
-    const participants = await listAll(admin.DuelParticipant, { user_id: user.id });
-    for (const participant of participants) {
+    const participantLists = await Promise.all([
+      listAll(admin.DuelParticipant, { user_id: user.id }),
+      listAll(admin.DuelParticipant, { departed_user_id: user.id }),
+    ]);
+    const participants = new Map(participantLists.flat().map((participant) => [participant.id, participant]));
+    for (const participant of participants.values()) {
       await admin.DuelParticipant.update(participant.id, {
-        user_id: anonymousId,
+        ...(participant.user_id === user.id ? { user_id: anonymousId } : {}),
+        ...(participant.departed_user_id === user.id ? { departed_user_id: anonymousId } : {}),
         handle: "Deleted player",
         status: participant.status === "playing" ? "forfeit" : participant.status,
       });

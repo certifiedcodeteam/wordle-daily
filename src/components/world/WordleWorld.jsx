@@ -2,22 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
-  CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
+  Activity, CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
   Gauge, Info, Loader2, LockKeyhole, LogIn, MoonStar, Pencil, RefreshCw,
-  RotateCcw, ShieldCheck, Sunset, Swords, Target, Timer, TreePine, X, Zap,
+  Radio, RotateCcw, ShieldCheck, Sunset, Swords, Target, Timer, TreePine, WifiOff, X, Zap,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { worldApi, trackWorld } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
 import { shouldIgnoreGlobalKeydown } from "@/lib/dom";
 import { GUEST_DAILY_KEY, saveAuthIntent } from "@/lib/auth-flow";
+import { nextDuelSync } from "@/lib/duel-sync";
 import {
   DEFAULT_WORLD_PATH, WORLD_MODES, buildPlayPath, buildPlayerPath, parseWorldPath,
 } from "@/lib/world-routes";
 import { playInvalid, playKey, playLose, playReveal, playWin } from "@/lib/wordle/audio";
 import { ANSWERS } from "@/lib/wordle/words";
 import {
-  GameHud, MODES, ModeDrawer, PlayerDrawer, ProgressionInfoDialog, ResultSheet,
+  DuelResultSheet, GameHud, MODES, ModeDrawer, PlayerDrawer, ProgressionInfoDialog, ResultSheet,
   SeasonLeagueInfoDialog, SettingsPanel, ShopItemInfoDialog,
 } from "@/components/world/WorldChrome";
 import { useGamePreferences } from "@/components/world/useGamePreferences";
@@ -37,7 +38,7 @@ export const SHOP = [
 
 /** @type {any} */
 const worldEntities = base44.entities;
-const NOOP = () => {};
+const NOOP = (..._args) => {};
 
 function applyCollectionEvent(records, event, includes = (_record) => true) {
   const previous = records.find((record) => record.id === event.id);
@@ -220,7 +221,7 @@ export default function WordleWorld() {
   );
 }
 
-function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPanel, onSaveProgress, currentStreak, haptic, unlockAudio, sessionId = "" }) {
+function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPanel, onSaveProgress, currentStreak, haptic, unlockAudio, sessionId = "", battle = null, onBattleRefresh = NOOP, onActivityChange = NOOP, onDuelAgain = NOOP }) {
   const [session, setSession] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [draft, setDraft] = useState("");
@@ -237,6 +238,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   const loggedAnswerRef = useRef("");
   const modeInfo = MODES.find((item) => item.id === mode) || MODES[0];
   const inputLocked = phase !== "input" || !session || session.status !== "playing";
+  const duelFinalizing = mode === "duel" && ["won", "lost"].includes(phase) && battle?.match?.status !== "complete";
 
   const later = useCallback((fn, delay) => {
     const timer = window.setTimeout(fn, delay);
@@ -328,6 +330,14 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     else onHudChange(`Round ${session.roundNumber || 1} - ${phaseLabel(phase)}`);
   }, [mode, onHudChange, phase, remaining, session]);
 
+  useEffect(() => {
+    if (mode !== "duel") return;
+    const activity = phase === "submitting" || phase === "revealing" ? "checking"
+      : ["won", "lost"].includes(phase) ? "finished"
+        : draft ? "typing" : "thinking";
+    onActivityChange(activity);
+  }, [draft, mode, onActivityChange, phase]);
+
   const invalidGuess = useCallback((text) => {
     setMessage(text);
     setShakeKey((value) => value + 1);
@@ -354,6 +364,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     setSession(response);
     if (response.status === "playing") {
       setPhase("input");
+      if (mode === "duel") onBattleRefresh();
       return;
     }
 
@@ -369,8 +380,9 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       playLose();
       haptic([35, 55, 35]);
     }
-    later(() => setResultOpen(true), 220);
-  }, [haptic, later, mode]);
+    if (mode === "duel") later(onBattleRefresh, 220);
+    else later(() => setResultOpen(true), 220);
+  }, [haptic, later, mode, onBattleRefresh]);
 
   const submit = useCallback(async () => {
     if (inputLocked) return;
@@ -450,22 +462,23 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   const primaryLabel = canBuyExtra ? "Unlock final guess - 30 tokens" : mode === "endless" || mode === "rush" ? "Next round" : mode === "daily" ? authenticated ? "View missions" : "Save progress" : "Choose mode";
 
   return (
-    <section className={`game-workspace phase-${phase}`} aria-label={modeInfo.title}>
-      <div className="arena-heading">
+    <section className={`game-workspace phase-${phase} ${battle ? "duel-game-workspace" : ""}`} aria-label={modeInfo.title}>
+      {battle ? <BattleHeader snapshot={battle} now={clock} /> : <div className="arena-heading">
         <div><span>{modeInfo.label}</span><h1>{modeInfo.title}</h1></div>
         {mode === "rush" && <div className="arena-score"><strong>{session?.score || 0}</strong><span>score</span></div>}
         {session?.deadline && <div className="mode-timer"><Timer />{formatDuration(remaining)}</div>}
-      </div>
+      </div>}
       <div className="game-board-wrap">
         {phase === "loading" && !session ? <ArenaLoader /> : <WorldBoard attempts={attempts} draft={draft} rows={session?.maxGuesses || 6} revealingRow={revealingRow} shakeKey={shakeKey} won={phase === "won"} />}
         {roundNotice && <div className="round-notice" role="status">{roundNotice}</div>}
       </div>
       <WorldKeyboard attempts={visibleKeyboardAttempts} onKey={onKey} disabled={inputLocked} />
       <div className={`game-status ${message ? "has-message" : ""}`} role="status" aria-live="polite">
-        {(phase === "submitting" || phase === "loading") && <Loader2 className="world-inline-spinner" />}
-        <span>{message || (reward ? `+${reward.xp || 0} XP - +${reward.tokens || 0} tokens` : phase === "input" ? "Build a five-letter word" : phaseLabel(phase))}</span>
+        {(phase === "submitting" || phase === "loading" || duelFinalizing) && <Loader2 className="world-inline-spinner" />}
+        <span>{message || (duelFinalizing ? "Finalizing battle" : reward ? `+${reward.xp || 0} XP - +${reward.tokens || 0} tokens` : phase === "input" ? "Build a five-letter word" : phaseLabel(phase))}</span>
       </div>
-      <ResultSheet open={resultOpen} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" />
+      {mode !== "duel" && <ResultSheet open={resultOpen} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" />}
+      {mode === "duel" && <DuelResultSheet snapshot={battle} onAgain={onDuelAgain} onClose={NOOP} />}
     </section>
   );
 }
@@ -510,12 +523,36 @@ function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, on
   const [invite, setInvite] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState("lobby");
+  const [now, setNow] = useState(Date.now());
+  const activityRef = useRef(activity);
+  const lastPresenceRef = useRef("");
+  const consumedSyncRef = useRef({ matchId: "", values: new Set() });
 
-  const refresh = useCallback(async (matchId) => {
-    try { const data = await worldApi.duelStatus(matchId); setStatus(data); setMatch(data.match); }
-    catch (error) { setMessage(error.message); }
+  const applySnapshot = useCallback((data) => {
+    if (!data) { setStatus(null); setMatch(null); return; }
+    setStatus(data);
+    setMatch(data.match);
   }, []);
-  useEffect(() => { onHudChange(match?.status === "waiting" ? "Searching for rival" : "Ranked match"); }, [match?.status, onHudChange]);
+  const refresh = useCallback(async (matchId) => {
+    try { applySnapshot(await worldApi.duelStatus(matchId)); }
+    catch (error) {
+      console.warn("[Duel] Result synchronization failed", { matchId, message: error.message, code: error.code, status: error.status });
+      setMessage(error.message);
+    }
+  }, [applySnapshot]);
+  useEffect(() => { activityRef.current = activity; }, [activity]);
+  useEffect(() => {
+    let active = true;
+    worldApi.currentDuel().then((data) => active && applySnapshot(data)).catch((error) => active && setMessage(error.message));
+    return () => { active = false; };
+  }, [applySnapshot]);
+  useEffect(() => {
+    const detail = match?.status === "waiting" ? "Searching for rival"
+      : match?.status === "lobby" ? "Private lobby"
+        : match?.status === "countdown" ? "Battle starting" : match?.status === "complete" ? "Battle complete" : "Live battle";
+    onHudChange(detail);
+  }, [match?.status, onHudChange]);
   useEffect(() => {
     if (!match?.id) return undefined;
     const subscriptions = [];
@@ -523,44 +560,180 @@ function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, on
       subscriptions.push(worldEntities.DuelMatch.subscribe((event) => {
         if (event.id !== match.id) return;
         if (event.type === "delete") { setMatch(null); setStatus(null); return; }
-        if (event.data) setMatch((current) => ({ ...current, ...event.data }));
+        if (!event.data) return;
+        setMatch((current) => ({ ...current, ...event.data }));
+        setStatus((current) => {
+          if (!current) return current;
+          const nextMatch = { ...current.match, ...event.data };
+          const sessionId = userId === nextMatch.player_one_id ? nextMatch.session_one_id : nextMatch.session_two_id;
+          return {
+            ...current, match: nextMatch, sessionId: current.self?.controller === "bot" ? "" : sessionId || current.sessionId || "",
+            fallbackAt: nextMatch.fallback_at || current.fallbackAt,
+            countdownEndsAt: nextMatch.countdown_ends_at || current.countdownEndsAt,
+          };
+        });
       }));
     } catch { /* manual refresh remains available */ }
     try {
       subscriptions.push(worldEntities.DuelParticipant.subscribe((event) => {
-        if (event.data?.match_id === match.id && ["won", "lost", "forfeit"].includes(event.data.status)) refresh(match.id);
+        setStatus((current) => {
+          if (!current) return current;
+          const previous = current.participants.find((participant) => participant.id === event.id);
+          if (event.data?.match_id !== match.id && previous?.match_id !== match.id) return current;
+          const participants = applyCollectionEvent(current.participants, event).map((participant) => ({
+            ...participant,
+            connection_state: participant.controller === "bot" ? "connected"
+              : event.id === participant.id && event.data?.live_state === "reconnecting" ? "reconnecting"
+                : event.id === participant.id && event.data?.last_seen_at ? "connected" : participant.connection_state || "connected",
+          }));
+          const self = participants.find((participant) => participant.user_id === userId || participant.departed_user_id === userId) || null;
+          const opponent = participants.find((participant) => participant.id !== self?.id) || null;
+          if (self?.user_id === userId && self.live_state) lastPresenceRef.current = self.live_state;
+          return { ...current, participants, self, opponent, nextSyncAt: opponent?.next_update_at || current.nextSyncAt };
+        });
+        if (event.data?.match_id === match.id && ["won", "lost", "forfeit"].includes(event.data.status)) {
+          window.setTimeout(() => refresh(match.id), 0);
+        }
       }));
     } catch { /* deadline reconciliation remains available */ }
     return () => subscriptions.forEach((unsubscribe) => unsubscribe?.());
-  }, [match?.id, refresh]);
+  }, [match?.id, refresh, userId]);
   useEffect(() => {
-    if (match?.status !== "active" || !match.deadline) return undefined;
-    const delay = Math.max(0, new Date(match.deadline).getTime() - Date.now()) + 250;
-    const timer = window.setTimeout(() => refresh(match.id), delay);
+    if (!match?.id || match.status === "complete") return undefined;
+    if (consumedSyncRef.current.matchId !== match.id) consumedSyncRef.current = { matchId: match.id, values: new Set() };
+    const candidate = nextDuelSync(status, consumedSyncRef.current.values);
+    if (!candidate) return undefined;
+    const delay = Math.max(20, candidate.at - Date.now() + 80);
+    const timer = window.setTimeout(() => {
+      consumedSyncRef.current.values.add(candidate.key);
+      refresh(match.id);
+    }, delay);
     return () => window.clearTimeout(timer);
-  }, [match?.deadline, match?.id, match?.status, refresh]);
+  }, [match?.deadline, match?.id, match?.status, refresh, status?.countdownEndsAt, status?.fallbackAt, status?.nextSyncAt]);
+  useEffect(() => {
+    if (!match?.id || match.status === "complete") return undefined;
+    let active = true;
+    const send = () => {
+      const nextActivity = match.status === "lobby" ? "lobby" : activityRef.current;
+      lastPresenceRef.current = nextActivity;
+      worldApi.duelPresence(match.id, nextActivity).then((data) => active && applySnapshot(data)).catch(() => {});
+    };
+    send();
+    const markAway = () => worldApi.duelPresence(match.id, "away").catch(() => {});
+    const onVisible = () => { if (document.visibilityState === "visible") send(); else markAway(); };
+    window.addEventListener("focus", send);
+    window.addEventListener("pagehide", markAway);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", send);
+      window.removeEventListener("pagehide", markAway);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [applySnapshot, match?.id, match?.status]);
+  useEffect(() => {
+    if (!match?.id || match.status !== "active" || activity !== "typing" || lastPresenceRef.current === "typing") return;
+    lastPresenceRef.current = "typing";
+    worldApi.duelPresence(match.id, "typing").then(applySnapshot).catch(() => {});
+  }, [activity, applySnapshot, match?.id, match?.status]);
+  useEffect(() => {
+    if (!["waiting", "lobby", "countdown"].includes(match?.status)) return undefined;
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [match?.status]);
 
   const action = async (fn) => {
     setBusy(true); setMessage("");
     try {
       const data = await fn();
-      const nextMatch = data.match || data;
-      setMatch(nextMatch);
+      applySnapshot(data);
     } catch (error) { setMessage(error.message); }
     finally { setBusy(false); }
   };
 
+  const playAgain = useCallback(async () => {
+    setMatch(null); setStatus(null); setMessage(""); setActivity("lobby");
+    await action(match?.kind === "private" ? worldApi.createPrivateDuel : worldApi.queueDuel);
+  }, [match?.kind]);
   const sessionId = status?.sessionId || (userId === match?.player_one_id ? match?.session_one_id : match?.session_two_id);
-  if (sessionId && match?.status === "active") return <GameMode mode="duel" sessionId={sessionId} onHudChange={onHudChange} authenticated={authenticated} onAccountChange={onAccountChange} onOpenPanel={onOpenPanel} onSaveProgress={onSaveProgress} currentStreak={currentStreak} haptic={haptic} unlockAudio={unlockAudio} />;
+  if (sessionId && ["active", "complete"].includes(match?.status)) return <GameMode mode="duel" sessionId={sessionId} battle={status} onBattleRefresh={() => refresh(match.id)} onActivityChange={setActivity} onDuelAgain={playAgain} onHudChange={onHudChange} authenticated={authenticated} onAccountChange={onAccountChange} onOpenPanel={onOpenPanel} onSaveProgress={onSaveProgress} currentStreak={currentStreak} haptic={haptic} unlockAudio={unlockAudio} />;
+
+  if (status && ["lobby", "countdown"].includes(match?.status)) return <section className="duel-workspace duel-lobby-workspace">
+    <BattleHeader snapshot={status} now={now} />
+    <div className={`duel-lobby-stage is-${match.status}`}>
+      {match.status === "countdown" ? <><Swords /><strong>Battle starts in {Math.max(1, Math.ceil((new Date(status.countdownEndsAt).getTime() - now) / 1000))}</strong><span>Both players connected</span></> : <><Radio /><strong>Waiting for your friend</strong><span>The match starts automatically when both players are online.</span></>}
+      {match.invite_code && <code>{match.invite_code}</code>}
+    </div>
+    {message && <p className="workspace-message" role="status">{message}</p>}
+  </section>;
+
+  if (status && match?.status === "active" && !sessionId) return <section className="duel-workspace duel-lobby-workspace">
+    <BattleHeader snapshot={status} now={now} />
+    <div className="duel-lobby-stage"><WifiOff /><strong>Your seat is no longer active</strong><span>Your opponent is finishing this ranked battle.</span></div>
+  </section>;
+
   return <section className="duel-workspace">
     <div className="arena-heading"><div><span>Versus</span><h1>Ranked Duel</h1></div><Swords /></div>
-    {match?.status === "waiting" ? <div className="matchmaking-state"><div className="matchmaking-radar"><Swords /></div><strong>Searching for rival</strong><span>Stay ready. The match starts automatically.</span>{match.invite_code && <code>{match.invite_code}</code>}<button className="secondary-world-command" onClick={() => refresh(match.id)}><RefreshCw />Refresh</button></div> : <div className="duel-actions">
+    {match?.status === "waiting" ? <div className="matchmaking-state"><div className="matchmaking-radar"><Swords /></div><strong>Searching for rival</strong><span>Finding an available opponent. The match starts automatically.</span><button className="secondary-world-command" onClick={() => refresh(match.id)}><RefreshCw />Refresh</button></div> : <div className="duel-actions">
       <button className="duel-action" disabled={busy} onClick={() => action(worldApi.queueDuel)}><Gauge /><strong>Find rival</strong><span>Enter ranked matchmaking</span><ChevronRight /></button>
       <button className="duel-action" disabled={busy} onClick={() => action(worldApi.createPrivateDuel)}><Swords /><strong>Create private duel</strong><span>Share a six-letter code</span><ChevronRight /></button>
       <div className="invite-entry"><input value={invite} onChange={(event) => setInvite(event.target.value.toUpperCase().slice(0, 6))} placeholder="INVITE" aria-label="Invite code" /><button disabled={busy || invite.length !== 6} onClick={() => action(() => worldApi.joinPrivateDuel(invite))}>Join</button></div>
     </div>}
     {message && <p className="workspace-message" role="status">{message}</p>}
   </section>;
+}
+
+function BattleHeader({ snapshot, now = Date.now() }) {
+  const match = snapshot?.match || {};
+  const self = snapshot?.self;
+  const opponent = snapshot?.opponent;
+  const countdown = match.status === "countdown" && snapshot.countdownEndsAt ? Math.max(0, new Date(snapshot.countdownEndsAt).getTime() - now) : 0;
+  const remaining = match.status === "active" && match.deadline ? Math.max(0, new Date(match.deadline).getTime() - now) : 0;
+  return <header className={`battle-header ${remaining > 0 && remaining <= 20000 ? "is-pressure" : ""}`}>
+    <BattlePlayer participant={self} label="You" />
+    <div className="battle-center" aria-label="Battle status">
+      <Swords />
+      <strong>{countdown ? String(Math.max(1, Math.ceil(countdown / 1000))) : remaining ? formatDuration(remaining) : match.status === "complete" ? "Final" : "VS"}</strong>
+      <span>{battleLead(self, opponent)}</span>
+    </div>
+    <BattlePlayer participant={opponent} label="Rival" opponent />
+    <div className="battle-callout" role="status" aria-live="polite"><Activity />{opponentCallout(opponent)}</div>
+  </header>;
+}
+
+function BattlePlayer({ participant, label, opponent = false }) {
+  const initials = (participant?.handle || "Waiting").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return <section className={`battle-player ${opponent ? "is-opponent" : "is-self"}`} aria-label={`${label}: ${participant?.handle || "waiting"}`}>
+    <div className="battle-identity">
+      <span className="battle-avatar" data-seed={participant?.avatar_seed || "waiting"}>{participant?.avatar_url ? <img src={participant.avatar_url} alt="" /> : initials}</span>
+      <span><small>{label}</small><strong>{participant?.handle || "Waiting..."}</strong><em>{capitalize(participant?.division || "unranked")} · {participant?.rating_before || 1000}</em></span>
+    </div>
+    <div className="battle-progress" aria-label={`${participant?.guesses_used || 0} of 6 guesses used`}>{Array.from({ length: 6 }, (_, index) => <i key={index} className={index < (participant?.guesses_used || 0) ? "is-used" : ""} />)}</div>
+    <div className={`battle-live is-${participant?.connection_state || "offline"}`}><span />{liveStateLabel(participant)}</div>
+  </section>;
+}
+
+function liveStateLabel(participant) {
+  if (!participant) return "Waiting";
+  if (participant.connection_state === "reconnecting") return "Reconnecting";
+  if (participant.connection_state === "expired") return "Connection lost";
+  return ({ lobby: "Online", ready: "Ready", thinking: "Thinking", typing: "Typing", checking: "Checking", locked_in: "Locked in", solved: "Solved", finished: "Finished" })[participant.live_state] || "Online";
+}
+
+function opponentCallout(opponent) {
+  if (!opponent) return "Waiting for an opponent";
+  const state = liveStateLabel(opponent);
+  if (opponent.status === "won") return `${opponent.handle} solved in ${opponent.guesses_used} guesses`;
+  if (opponent.status === "forfeit") return `${opponent.handle} forfeited`;
+  return `${opponent.handle} · ${state}`;
+}
+
+function battleLead(self, opponent) {
+  if (!self || !opponent) return "Waiting";
+  if (self.status === "won" && opponent.status !== "won") return "You lead";
+  if (opponent.status === "won" && self.status !== "won") return "Rival ahead";
+  if (self.guesses_used === opponent.guesses_used) return "Neck and neck";
+  return self.guesses_used < opponent.guesses_used ? "You lead" : "Rival ahead";
 }
 
 function LeagueMode({ onHudChange }) {

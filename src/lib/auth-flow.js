@@ -29,7 +29,7 @@ export const AUTH_PRESENTATIONS = {
   duel: {
     kicker: "Arena access",
     title: "Enter Ranked Duels",
-    subtitle: "Race live rivals and climb the competitive ladder.",
+    subtitle: "Race a matched rival and climb the competitive ladder.",
     action: "Enter the arena",
   },
   league: {

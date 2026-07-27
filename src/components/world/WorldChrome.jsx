@@ -142,6 +142,38 @@ export function ResultSheet({ open, result, streak, onClose, onPrimary, primaryL
   </Dialog>;
 }
 
+export function DuelResultSheet({ snapshot, onAgain, onClose }) {
+  if (!snapshot || snapshot.match?.status !== "complete") return null;
+  const self = snapshot.self;
+  const opponent = snapshot.opponent;
+  const won = self?.status === "won" && snapshot.match.winner_user_id === self.user_id;
+  const draw = !snapshot.match.winner_user_id;
+  const title = draw ? "Dead heat" : won ? "Battle won" : "Rival wins";
+  return <Dialog open onOpenChange={(next) => !next && onClose?.()}>
+    <DialogContent className={`result-sheet duel-result-sheet ${won ? "is-win" : "is-loss"}`}>
+      <div className="result-emblem" aria-hidden="true">{won ? <Crown /> : <Swords />}</div>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogDescription>{draw ? "Neither player broke the tie." : won ? `${self.handle} takes the battle.` : `${opponent?.handle || "Your rival"} takes the battle.`}</DialogDescription>
+      <div className="duel-result-scoreline" aria-label="Battle result">
+        <ResultCombatant participant={self} label="You" winner={won} />
+        <strong>VS</strong>
+        <ResultCombatant participant={opponent} label="Rival" winner={!draw && !won} />
+      </div>
+      <div className="result-scoreline">
+        <ResultStat label="Rating" value={Math.abs(self?.rating_change || 0)} prefix={(self?.rating_change || 0) >= 0 ? "+" : "-"} />
+        <ResultStat label="XP" value={self?.reward_xp || 0} prefix="+" />
+        <ResultStat label="Tokens" value={self?.reward_tokens || 0} prefix="+" />
+        <ResultStat label="League" value={self?.league_points || 0} prefix="+" />
+      </div>
+      <div className="result-actions"><button className="primary-world-command" onClick={onAgain}>Play again</button></div>
+    </DialogContent>
+  </Dialog>;
+}
+
+function ResultCombatant({ participant, label, winner }) {
+  return <div className={winner ? "is-winner" : ""}><small>{label}</small><strong>{participant?.handle || "-"}</strong><span>{participant?.status === "won" ? `${participant.guesses_used} guesses` : participant?.status || "finished"}</span></div>;
+}
+
 export function ProgressionInfoDialog({ topic, account, profile, onClose }) {
   const level = Math.max(1, profile?.level || 1);
   const xp = Math.max(0, account?.xp_total || 0);
@@ -227,4 +259,4 @@ export function SeasonLeagueInfoDialog({ season, onClose }) {
 
 function ResultStat({ label, value, prefix = "" }) { return <div><span>{label}</span><strong>{prefix}{value}</strong></div>; }
 function drawerTitle(view) { return ({ missions: "Missions", shop: "Token shop", profile: "Player card", settings: "Game settings" })[view] || "Player"; }
-function modeDescription(mode) { return ({ daily: "One shared puzzle. One shot today.", endless: "Keep solving. Keep earning.", rush: "Three minutes. Maximum score.", duel: "Race a rival in real time.", league: "Climb your seasonal division." })[mode]; }
+function modeDescription(mode) { return ({ daily: "One shared puzzle. One shot today.", endless: "Keep solving. Keep earning.", rush: "Three minutes. Maximum score.", duel: "A matched rival is always ready.", league: "Climb your seasonal division." })[mode]; }

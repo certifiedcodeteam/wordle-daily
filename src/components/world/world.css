@@ -947,6 +947,62 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
 .game-first .matchmaking-state code { border: 1px dashed var(--arena-line); border-radius: 5px; padding: 12px 18px; font-size: 24px; letter-spacing: .18em; }
 .game-first .workspace-message { color: var(--arena-muted); font-size: 12px; text-align: center; }
 
+.game-first .duel-game-workspace { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.battle-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  grid-template-rows: auto 28px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--arena-line);
+  background: color-mix(in srgb, var(--arena-panel) 56%, transparent);
+}
+.battle-player { min-width: 0; display: grid; align-content: center; gap: 8px; padding: 11px 2px 9px; }
+.battle-player.is-opponent { text-align: right; }
+.battle-identity { min-width: 0; display: flex; align-items: center; gap: 9px; }
+.battle-player.is-opponent .battle-identity { flex-direction: row-reverse; }
+.battle-identity > span:last-child { min-width: 0; display: grid; gap: 1px; }
+.battle-identity small { color: var(--arena-orange); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.battle-identity strong { overflow: hidden; font-size: 14px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.battle-identity em { overflow: hidden; color: var(--arena-muted); font-size: 9px; font-style: normal; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.battle-avatar { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--arena-green) 54%, var(--arena-line)); border-radius: 7px; color: var(--arena-panel); background: var(--arena-green); font-size: 12px; font-weight: 900; }
+.battle-player.is-opponent .battle-avatar { border-color: color-mix(in srgb, var(--arena-orange) 54%, var(--arena-line)); background: var(--arena-orange); }
+.battle-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.battle-progress { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.battle-progress i { height: 5px; border-radius: 2px; background: var(--arena-line); }
+.battle-progress i.is-used { background: var(--arena-green); animation: battle-pip 240ms cubic-bezier(.2, .8, .2, 1); }
+.battle-player.is-opponent .battle-progress i.is-used { background: var(--arena-orange); }
+.battle-live { display: flex; align-items: center; gap: 5px; min-height: 12px; color: var(--arena-muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }
+.battle-player.is-opponent .battle-live { justify-content: flex-end; }
+.battle-live > span { width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: var(--arena-muted); }
+.battle-live.is-connected > span { background: var(--arena-green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--arena-green) 15%, transparent); }
+.battle-live.is-reconnecting > span { background: var(--arena-gold); animation: battle-presence 1s ease-in-out infinite; }
+.battle-center { min-width: 0; display: grid; place-items: center; align-content: center; gap: 1px; border-inline: 1px solid var(--arena-line); margin: 9px 12px 7px; }
+.battle-center svg { width: 17px; height: 17px; color: var(--arena-orange); }
+.battle-center strong { font-size: 18px; font-variant-numeric: tabular-nums; line-height: 1; }
+.battle-center span { max-width: 80px; overflow: hidden; color: var(--arena-muted); font-size: 7px; font-weight: 850; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.battle-header.is-pressure .battle-center strong { color: var(--arena-orange); animation: battle-presence .8s ease-in-out infinite; }
+.battle-callout { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 6px; border-top: 1px solid var(--arena-line); color: var(--arena-muted); font-size: 9px; font-weight: 760; }
+.battle-callout svg { width: 12px; height: 12px; color: var(--arena-gold); }
+.game-first .duel-game-workspace .world-board { max-height: calc(100dvh - 372px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+.duel-lobby-workspace .battle-header { flex: 0 0 auto; }
+.duel-lobby-stage { flex: 1; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 11px; text-align: center; }
+.duel-lobby-stage > svg { width: 46px; height: 46px; color: var(--arena-green); }
+.duel-lobby-stage.is-countdown > svg { color: var(--arena-orange); animation: battle-countdown 700ms cubic-bezier(.2, .8, .2, 1) infinite alternate; }
+.duel-lobby-stage > strong { font-size: 21px; }
+.duel-lobby-stage > span { max-width: 42ch; color: var(--arena-muted); font-size: 11px; }
+.duel-lobby-stage code { border: 1px dashed var(--arena-line); border-radius: 5px; padding: 12px 18px; font-size: 24px; letter-spacing: .18em; }
+.duel-result-scoreline { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr); align-items: center; gap: 7px; }
+.duel-result-scoreline > div { min-width: 0; display: grid; gap: 2px; border-bottom: 3px solid var(--arena-line); padding: 10px 5px; }
+.duel-result-scoreline > div.is-winner { border-bottom-color: var(--arena-green); background: color-mix(in srgb, var(--arena-green) 9%, transparent); }
+.duel-result-scoreline > strong { color: var(--arena-muted); font-size: 10px; }
+.duel-result-scoreline small { color: var(--arena-orange); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.duel-result-scoreline strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.duel-result-scoreline span { color: var(--arena-muted); font-size: 9px; text-transform: capitalize; }
+@keyframes battle-pip { from { opacity: .25; transform: scaleX(.3); } to { opacity: 1; transform: scaleX(1); } }
+@keyframes battle-presence { 50% { opacity: .45; } }
+@keyframes battle-countdown { to { transform: scale(1.12); } }
+
 .game-first .league-workspace { display: flex; flex-direction: column; gap: 15px; }
 .game-first .league-heading small { color: var(--arena-muted); font-size: 10px; }
 .game-first .league-season-guide { width: max-content; min-height: 27px; display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; border: 1px solid color-mix(in srgb, var(--arena-gold) 55%, var(--arena-line)); border-radius: 4px; padding: 0 7px; color: var(--arena-ink); background: color-mix(in srgb, var(--arena-gold) 9%, var(--arena-panel)); cursor: pointer; }
@@ -1058,6 +1114,19 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
   .game-first .world-keyboard button { height: clamp(43px, 6.3dvh, 53px); font-size: 10px; }
   .game-first .world-keyboard button.is-wide { font-size: 8px; }
   .game-first .game-status { min-height: 22px; font-size: 9px; }
+  .battle-header { grid-template-columns: minmax(0, 1fr) 66px minmax(0, 1fr); grid-template-rows: auto 24px; }
+  .battle-player { gap: 5px; padding: 7px 1px 6px; }
+  .battle-avatar { width: 34px; height: 34px; flex-basis: 34px; border-radius: 6px; font-size: 10px; }
+  .battle-identity { gap: 6px; }
+  .battle-identity strong { font-size: 11px; }
+  .battle-identity em { font-size: 7px; }
+  .battle-center { margin: 6px 6px 5px; }
+  .battle-center svg { width: 14px; height: 14px; }
+  .battle-center strong { font-size: 15px; }
+  .battle-progress { gap: 2px; }
+  .battle-progress i { height: 4px; }
+  .battle-callout { font-size: 8px; }
+  .game-first .duel-game-workspace .world-board { max-height: calc(100dvh - 332px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
   .game-first .duel-workspace,
   .game-first .league-workspace { padding: 10px 10px max(24px, env(safe-area-inset-bottom, 0px)); }
   .game-first .matchmaking-state { min-height: 330px; }
@@ -1077,6 +1146,13 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
   .result-sheet [role="heading"] { font-size: 28px; }
   .result-emblem { width: 58px; height: 58px; }
   .result-scoreline strong { font-size: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-progress i.is-used,
+  .battle-live.is-reconnecting > span,
+  .battle-header.is-pressure .battle-center strong,
+  .duel-lobby-stage.is-countdown > svg { animation: none; }
 }
 
 @media (max-width: 380px) {

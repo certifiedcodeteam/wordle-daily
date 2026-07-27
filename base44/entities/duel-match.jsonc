@@ -3,7 +3,7 @@
   "type": "object",
   "properties": {
     "kind": { "type": "string", "enum": ["ranked", "private", "cup"] },
-    "status": { "type": "string", "enum": ["waiting", "active", "complete", "cancelled"] },
+    "status": { "type": "string", "enum": ["waiting", "lobby", "countdown", "active", "complete", "cancelled"] },
     "invite_code": { "type": "string" },
     "player_one_id": { "type": "string" },
     "player_two_id": { "type": "string" },
@@ -12,6 +12,8 @@
     "session_two_id": { "type": "string" },
     "started_at": { "type": "string", "format": "date-time" },
     "deadline": { "type": "string", "format": "date-time" },
+    "fallback_at": { "type": "string", "format": "date-time" },
+    "countdown_ends_at": { "type": "string", "format": "date-time" },
     "version": { "type": "integer" },
     "season_id": { "type": "string" },
     "bracket_id": { "type": "string" },
