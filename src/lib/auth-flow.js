@@ -1,4 +1,5 @@
 import { worldApi } from "@/api/worldClient";
+import { buildPlayPath, parseWorldPath, safeWorldDestination } from "@/lib/world-routes";
 
 export const AUTH_INTENT_KEY = "wordle-world-auth-intent";
 export const GUEST_DAILY_KEY = "wordle-world-guest-daily";
@@ -50,11 +51,15 @@ function readJson(storage, key) {
   catch { return null; }
 }
 
-export function buildAuthIntent({ mode = "daily", reason = "account" } = {}, storage = globalThis.localStorage) {
+/** @param {{ mode?: string, reason?: string, destination?: string }} [input] */
+export function buildAuthIntent(input = {}, storage = globalThis.localStorage) {
+  const { mode = "daily", reason = "account", destination } = input;
   const guest = readJson(storage, GUEST_DAILY_KEY);
+  const safeMode = PROTECTED_MODES.has(mode) ? mode : "daily";
   return {
-    mode: PROTECTED_MODES.has(mode) ? mode : "daily",
+    mode: safeMode,
     reason,
+    destination: safeWorldDestination(destination, buildPlayPath(safeMode)),
     guestSessionId: guest?.sessionId || "",
     guestDayKey: guest?.dayKey || "",
     createdAt: Date.now(),
@@ -70,7 +75,14 @@ export function saveAuthIntent(input, storage = globalThis.localStorage) {
 export function readAuthIntent(storage = globalThis.localStorage) {
   const intent = readJson(storage, AUTH_INTENT_KEY);
   if (!intent?.createdAt || Date.now() - intent.createdAt > AUTH_INTENT_MAX_AGE_MS) return buildAuthIntent({}, storage);
-  return intent;
+  const safeMode = PROTECTED_MODES.has(intent.mode) ? intent.mode : "daily";
+  return {
+    ...intent,
+    mode: safeMode,
+    destination: safeWorldDestination(intent.destination, buildPlayPath(safeMode)),
+    guestSessionId: typeof intent.guestSessionId === "string" ? intent.guestSessionId : "",
+    guestDayKey: typeof intent.guestDayKey === "string" ? intent.guestDayKey : "",
+  };
 }
 
 export function clearAuthIntent(storage = globalThis.localStorage) {
@@ -78,11 +90,13 @@ export function clearAuthIntent(storage = globalThis.localStorage) {
 }
 
 export function authDestination(intent = {}) {
-  return PROTECTED_MODES.has(intent.mode) ? `/?mode=${intent.mode}` : "/";
+  const mode = PROTECTED_MODES.has(intent.mode) ? intent.mode : "daily";
+  return safeWorldDestination(intent.destination, buildPlayPath(mode));
 }
 
 export function authPresentation(intent = {}) {
   if (intent.reason === "save") return AUTH_PRESENTATIONS.daily;
+  if (parseWorldPath(authDestination(intent))?.kind === "player") return AUTH_PRESENTATIONS.default;
   return AUTH_PRESENTATIONS[intent.mode] || AUTH_PRESENTATIONS.default;
 }
 

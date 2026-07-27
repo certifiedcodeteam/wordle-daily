@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
   CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
@@ -11,7 +11,11 @@ import { worldApi, trackWorld } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
 import { shouldIgnoreGlobalKeydown } from "@/lib/dom";
 import { GUEST_DAILY_KEY, saveAuthIntent } from "@/lib/auth-flow";
+import {
+  DEFAULT_WORLD_PATH, WORLD_MODES, buildPlayPath, buildPlayerPath, parseWorldPath,
+} from "@/lib/world-routes";
 import { playInvalid, playKey, playLose, playReveal, playWin } from "@/lib/wordle/audio";
+import { ANSWERS } from "@/lib/wordle/words";
 import {
   GameHud, MODES, ModeDrawer, PlayerDrawer, ProgressionInfoDialog, ResultSheet,
   SeasonLeagueInfoDialog, SettingsPanel, ShopItemInfoDialog,
@@ -33,21 +37,43 @@ export const SHOP = [
 
 /** @type {any} */
 const worldEntities = base44.entities;
+const NOOP = () => {};
+
+function applyCollectionEvent(records, event, includes = (_record) => true) {
+  const previous = records.find((record) => record.id === event.id);
+  const remaining = records.filter((record) => record.id !== event.id);
+  if (event.type === "delete" || !event.data) return remaining;
+  const next = { ...previous, ...event.data };
+  return includes(next) ? [...remaining, next] : remaining;
+}
+
+function rankLeaderboard(entries) {
+  return [...entries]
+    .sort((left, right) => right.points - left.points || left.rank - right.rank)
+    .slice(0, 30)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
 
 export default function WordleWorld() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const { preferences, updatePreference, haptic, unlockAudio } = useGamePreferences();
-  const requestedMode = searchParams.get("mode");
-  const initialMode = isAuthenticated && MODES.some((item) => item.id === requestedMode) ? requestedMode : "daily";
-  const [mode, setMode] = useState(initialMode);
+  const route = parseWorldPath(location.pathname);
+  const routeState = location.state && typeof location.state === "object" ? location.state : {};
+  const stateReturnRoute = parseWorldPath(routeState.returnTo);
+  const returnTo = route?.kind === "play"
+    ? route.path
+    : stateReturnRoute?.kind === "play" ? stateReturnRoute.path : DEFAULT_WORLD_PATH;
+  const backgroundMode = WORLD_MODES.includes(routeState.worldMode) ? routeState.worldMode : "daily";
+  const mode = route?.kind === "play" ? route.mode : backgroundMode;
+  const drawerView = route?.kind === "player" ? route.panel : "missions";
   const [bootstrap, setBootstrap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeOverlay, setActiveOverlay] = useState(null);
-  const [drawerView, setDrawerView] = useState("missions");
+  const [modeDrawerOpen, setModeDrawerOpen] = useState(false);
   const [hudDetail, setHudDetail] = useState("");
+  const activityLogged = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,7 +81,6 @@ export default function WordleWorld() {
       const data = await worldApi.bootstrap();
       setBootstrap(data);
       setError("");
-      base44.appLogs?.logUserInApp?.("wordle-world").catch(() => {});
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -63,45 +88,81 @@ export default function WordleWorld() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load, isAuthenticated]);
   useEffect(() => {
-    if (!isAuthenticated || !MODES.some((item) => item.id === requestedMode)) return;
-    setMode(requestedMode);
-    setSearchParams({}, { replace: true });
-  }, [isAuthenticated, requestedMode, setSearchParams]);
+    if (activityLogged.current) return;
+    activityLogged.current = true;
+    base44.appLogs?.logUserInApp?.("wordle-world").catch(() => {});
+  }, []);
+
+  const requestAuth = useCallback((reason, nextMode = "daily", destination = buildPlayPath(nextMode), replace = false) => {
+    saveAuthIntent({ mode: nextMode, reason, destination });
+    navigate("/login", { replace });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated || !route?.requiresAuth) return;
+    requestAuth(route.kind === "play" ? "unlock" : "account", route.kind === "play" ? route.mode : "daily", route.path, true);
+  }, [isAuthenticated, requestAuth, route?.kind, route?.mode, route?.path, route?.requiresAuth]);
+  useEffect(() => {
+    if (!isAuthenticated && route?.requiresAuth) return;
+    load();
+  }, [load, isAuthenticated, route?.requiresAuth]);
+  useEffect(() => { setHudDetail(""); }, [mode]);
   useEffect(() => {
     if (!isAuthenticated || !user) return undefined;
     const subscriptions = [];
-    try { subscriptions.push(worldEntities.PlayerAccount.subscribe(load)); } catch { /* bootstrap polling remains available */ }
-    try { subscriptions.push(worldEntities.PlayerProfile.subscribe(load)); } catch { /* bootstrap polling remains available */ }
-    try { subscriptions.push(worldEntities.PlayerQuest.subscribe(load)); } catch { /* bootstrap polling remains available */ }
-    try { subscriptions.push(worldEntities.PlayerInventory.subscribe(load)); } catch { /* bootstrap polling remains available */ }
+    const patchRecord = (key) => (event) => {
+      setBootstrap((current) => {
+        if (!current || (event.data?.user_id || current[key]?.user_id) !== user.id || (event.type === "delete" && current[key]?.id !== event.id)) return current;
+        return {
+          ...current,
+          [key]: event.type === "delete" ? null : { ...current[key], ...event.data },
+        };
+      });
+    };
+    const patchCollection = (key) => (event) => {
+      setBootstrap((current) => {
+        if (!current) return current;
+        const records = current[key] || [];
+        const previous = records.find((record) => record.id === event.id);
+        if ((event.data?.user_id || previous?.user_id) !== user.id) return current;
+        return { ...current, [key]: applyCollectionEvent(records, event) };
+      });
+    };
+    try { subscriptions.push(worldEntities.PlayerAccount.subscribe(patchRecord("account"))); } catch { /* initial bootstrap remains available */ }
+    try { subscriptions.push(worldEntities.PlayerProfile.subscribe(patchRecord("profile"))); } catch { /* initial bootstrap remains available */ }
+    try { subscriptions.push(worldEntities.PlayerQuest.subscribe(patchCollection("quests"))); } catch { /* initial bootstrap remains available */ }
+    try { subscriptions.push(worldEntities.PlayerInventory.subscribe(patchCollection("inventory"))); } catch { /* initial bootstrap remains available */ }
     return () => subscriptions.forEach((unsubscribe) => unsubscribe?.());
-  }, [isAuthenticated, user, load]);
-
-  const requestAuth = (reason, nextMode = "daily") => {
-    saveAuthIntent({ mode: nextMode, reason });
-    navigate("/login");
-  };
+  }, [isAuthenticated, user]);
 
   const selectMode = (nextMode) => {
     if (!isAuthenticated && nextMode !== "daily") {
-      requestAuth("unlock", nextMode);
+      requestAuth("unlock", nextMode, buildPlayPath(nextMode));
       return;
     }
-    setMode(nextMode);
-    setHudDetail("");
-    setActiveOverlay(null);
+    setModeDrawerOpen(false);
+    navigate(buildPlayPath(nextMode));
     trackWorld("mode_selected", { mode: nextMode });
   };
 
-  const openOverlay = (view) => {
-    if (view === "login") { requestAuth("save"); return; }
-    if (view === "modes") { setActiveOverlay("modes"); return; }
-    setDrawerView(view);
-    setActiveOverlay("player");
+  const selectPanel = (view, replace = false) => {
+    const destination = buildPlayerPath(view);
+    if (!destination) return;
+    if (!isAuthenticated && view !== "settings") {
+      requestAuth("account", "daily", destination);
+      return;
+    }
+    navigate(destination, { replace, state: { returnTo, worldMode: mode } });
   };
 
+  const openOverlay = (view) => {
+    if (view === "login") { requestAuth("save", "daily", route?.path || DEFAULT_WORLD_PATH); return; }
+    if (view === "modes") { setModeDrawerOpen(true); return; }
+    selectPanel(view);
+  };
+
+  if (!route || (!isAuthenticated && route.requiresAuth)) return <WordleLoader />;
   if (loading && !bootstrap) return <WordleLoader />;
 
   const unclaimedRewardCount = isAuthenticated
@@ -113,17 +174,18 @@ export default function WordleWorld() {
     : !isAuthenticated
       ? <SignedOutPanel onLogin={() => requestAuth("save")} />
       : drawerView === "shop"
-        ? <ShopPanel data={bootstrap} onRefresh={load} onMissions={() => setDrawerView("missions")} />
+        ? <ShopPanel data={bootstrap} onMissions={() => selectPanel("missions", true)} />
         : drawerView === "profile"
-          ? <ProfilePanel data={bootstrap} onRefresh={load} onLogout={() => logout(true)} />
-          : <QuestPanel quests={bootstrap?.quests || []} onRefresh={load} />;
+          ? <ProfilePanel data={bootstrap} onLogout={() => logout(true)} />
+          : <QuestPanel quests={bootstrap?.quests || []} />;
 
   const sharedGameProps = {
     authenticated: isAuthenticated,
-    onAccountChange: load,
+    onAccountChange: NOOP,
     onHudChange: setHudDetail,
     onOpenPanel: openOverlay,
-    onSaveProgress: () => requestAuth("save"),
+    onSaveProgress: () => requestAuth("save", "daily", route.path),
+    userId: user?.id || "",
     currentStreak: bootstrap?.account?.current_streak || 0,
     preferences,
     haptic,
@@ -152,8 +214,8 @@ export default function WordleWorld() {
         {mode === "duel" && <DuelMode {...sharedGameProps} />}
         {mode === "league" && <LeagueMode onHudChange={setHudDetail} />}
       </main>
-      <ModeDrawer open={activeOverlay === "modes"} mode={mode} onClose={() => setActiveOverlay(null)} onSelect={selectMode} />
-      <PlayerDrawer open={activeOverlay === "player"} view={drawerView} rewardCount={unclaimedRewardCount} account={bootstrap?.account} profile={bootstrap?.profile} onView={setDrawerView} onClose={() => setActiveOverlay(null)}>{panel}</PlayerDrawer>
+      <ModeDrawer open={modeDrawerOpen} mode={mode} onClose={() => setModeDrawerOpen(false)} onSelect={selectMode} />
+      <PlayerDrawer open={route.kind === "player"} view={drawerView} rewardCount={unclaimedRewardCount} account={bootstrap?.account} profile={bootstrap?.profile} onView={(view) => selectPanel(view, true)} onClose={() => navigate(returnTo, { replace: true })}>{panel}</PlayerDrawer>
     </div>
   );
 }
@@ -172,6 +234,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   const [result, setResult] = useState(null);
   const [resultOpen, setResultOpen] = useState(false);
   const timers = useRef([]);
+  const loggedAnswerRef = useRef("");
   const modeInfo = MODES.find((item) => item.id === mode) || MODES[0];
   const inputLocked = phase !== "input" || !session || session.status !== "playing";
 
@@ -225,6 +288,16 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   }, [authenticated, mode, sessionId, later]);
 
   useEffect(() => { start(); }, [start]);
+  useEffect(() => {
+    const puzzleNumber = session?.puzzleNumber;
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if (mode !== "daily" || !isLocalhost || !Number.isInteger(puzzleNumber)) return;
+    const answer = ANSWERS[((puzzleNumber - 1) % ANSWERS.length + ANSWERS.length) % ANSWERS.length];
+    const logKey = `${puzzleNumber}:${answer}`;
+    if (loggedAnswerRef.current === logKey) return;
+    loggedAnswerRef.current = logKey;
+    console.log(`[Wordle World] Daily answer: ${answer.toUpperCase()}`);
+  }, [mode, session?.puzzleNumber]);
   useEffect(() => {
     if (!session?.deadline || session.status !== "playing") return undefined;
     const timer = window.setInterval(() => setClock(Date.now()), 250);
@@ -431,7 +504,7 @@ function WorldKeyboard({ attempts, onKey, disabled }) {
   </div>)}</div>;
 }
 
-function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, onSaveProgress, currentStreak, haptic, unlockAudio }) {
+function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, onSaveProgress, userId, currentStreak, haptic, unlockAudio }) {
   const [match, setMatch] = useState(null);
   const [status, setStatus] = useState(null);
   const [invite, setInvite] = useState("");
@@ -445,11 +518,27 @@ function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, on
   useEffect(() => { onHudChange(match?.status === "waiting" ? "Searching for rival" : "Ranked match"); }, [match?.status, onHudChange]);
   useEffect(() => {
     if (!match?.id) return undefined;
-    const timer = window.setInterval(() => refresh(match.id), 2500);
-    let unsubscribe;
-    try { unsubscribe = worldEntities.DuelMatch.subscribe((event) => { if (event.id === match.id) refresh(match.id); }); } catch { /* polling remains active */ }
-    return () => { window.clearInterval(timer); unsubscribe?.(); };
+    const subscriptions = [];
+    try {
+      subscriptions.push(worldEntities.DuelMatch.subscribe((event) => {
+        if (event.id !== match.id) return;
+        if (event.type === "delete") { setMatch(null); setStatus(null); return; }
+        if (event.data) setMatch((current) => ({ ...current, ...event.data }));
+      }));
+    } catch { /* manual refresh remains available */ }
+    try {
+      subscriptions.push(worldEntities.DuelParticipant.subscribe((event) => {
+        if (event.data?.match_id === match.id && ["won", "lost", "forfeit"].includes(event.data.status)) refresh(match.id);
+      }));
+    } catch { /* deadline reconciliation remains available */ }
+    return () => subscriptions.forEach((unsubscribe) => unsubscribe?.());
   }, [match?.id, refresh]);
+  useEffect(() => {
+    if (match?.status !== "active" || !match.deadline) return undefined;
+    const delay = Math.max(0, new Date(match.deadline).getTime() - Date.now()) + 250;
+    const timer = window.setTimeout(() => refresh(match.id), delay);
+    return () => window.clearTimeout(timer);
+  }, [match?.deadline, match?.id, match?.status, refresh]);
 
   const action = async (fn) => {
     setBusy(true); setMessage("");
@@ -457,12 +546,12 @@ function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, on
       const data = await fn();
       const nextMatch = data.match || data;
       setMatch(nextMatch);
-      if (nextMatch.id) await refresh(nextMatch.id);
     } catch (error) { setMessage(error.message); }
     finally { setBusy(false); }
   };
 
-  if (status?.sessionId && match?.status === "active") return <GameMode mode="duel" sessionId={status.sessionId} onHudChange={onHudChange} authenticated={authenticated} onAccountChange={onAccountChange} onOpenPanel={onOpenPanel} onSaveProgress={onSaveProgress} currentStreak={currentStreak} haptic={haptic} unlockAudio={unlockAudio} />;
+  const sessionId = status?.sessionId || (userId === match?.player_one_id ? match?.session_one_id : match?.session_two_id);
+  if (sessionId && match?.status === "active") return <GameMode mode="duel" sessionId={sessionId} onHudChange={onHudChange} authenticated={authenticated} onAccountChange={onAccountChange} onOpenPanel={onOpenPanel} onSaveProgress={onSaveProgress} currentStreak={currentStreak} haptic={haptic} unlockAudio={unlockAudio} />;
   return <section className="duel-workspace">
     <div className="arena-heading"><div><span>Versus</span><h1>Ranked Duel</h1></div><Swords /></div>
     {match?.status === "waiting" ? <div className="matchmaking-state"><div className="matchmaking-radar"><Swords /></div><strong>Searching for rival</strong><span>Stay ready. The match starts automatically.</span>{match.invite_code && <code>{match.invite_code}</code>}<button className="secondary-world-command" onClick={() => refresh(match.id)}><RefreshCw />Refresh</button></div> : <div className="duel-actions">
@@ -481,16 +570,67 @@ function LeagueMode({ onHudChange }) {
   useEffect(() => {
     let active = true;
     worldApi.tournamentStatus().then((result) => active && setData(result)).catch((next) => active && setError(next.message));
-    const refresh = () => worldApi.tournamentStatus().then((result) => active && setData(result));
     const subscriptions = [];
-    try { subscriptions.push(worldEntities.LeaderboardEntry.subscribe(refresh)); } catch { /* initial load remains */ }
-    try { subscriptions.push(worldEntities.PlayerProfile.subscribe(refresh)); } catch { /* leaderboard updates remain available */ }
+    try {
+      subscriptions.push(worldEntities.LeaderboardEntry.subscribe((event) => setData((current) => {
+        if (!current) return current;
+        const inCohort = (entry) => entry.season_id === current.season.id
+          && entry.division === current.membership.division
+          && entry.cohort === current.membership.cohort;
+        return { ...current, leaderboard: rankLeaderboard(applyCollectionEvent(current.leaderboard, event, inCohort)) };
+      })));
+    } catch { /* initial load remains */ }
+    try {
+      subscriptions.push(worldEntities.PlayerProfile.subscribe((event) => setData((current) => {
+        if (!current || !event.data?.user_id) return current;
+        const identity = event.type === "delete" ? { avatar_url: undefined, avatar_seed: undefined } : {};
+        for (const key of ["handle", "avatar_url", "avatar_seed"]) {
+          if (event.data[key] !== undefined) identity[key] = event.data[key];
+        }
+        const relevant = current.membership.user_id === event.data.user_id
+          || current.leaderboard.some((entry) => entry.user_id === event.data.user_id);
+        if (!relevant) return current;
+        const leaderboard = current.leaderboard.map((entry) => entry.user_id === event.data.user_id ? { ...entry, ...identity } : entry);
+        const membership = current.membership.user_id === event.data.user_id ? { ...current.membership, ...identity } : current.membership;
+        return { ...current, leaderboard, membership };
+      })));
+    } catch { /* hydrated identities remain available from initial load */ }
+    try {
+      subscriptions.push(worldEntities.LeagueMembership.subscribe((event) => setData((current) => {
+        if (!current || event.type === "delete" || event.data?.user_id !== current.membership.user_id || event.data.season_id !== current.season.id) return current;
+        return { ...current, membership: { ...current.membership, ...event.data } };
+      })));
+    } catch { /* initial load remains */ }
+    try {
+      subscriptions.push(worldEntities.CupBracket.subscribe((event) => setData((current) => {
+        if (!current) return current;
+        const inCohort = (bracket) => bracket.season_id === current.season.id
+          && bracket.division === current.membership.division
+          && bracket.cohort === current.membership.cohort;
+        return { ...current, brackets: applyCollectionEvent(current.brackets, event, inCohort).sort((left, right) => left.round - right.round || left.slot - right.slot) };
+      })));
+    } catch { /* initial load remains */ }
+    try {
+      subscriptions.push(worldEntities.Season.subscribe((event) => setData((current) => {
+        if (!current || event.id !== current.season.id || event.type === "delete" || !event.data) return current;
+        return { ...current, season: { ...current.season, ...event.data } };
+      })));
+    } catch { /* initial load remains */ }
     return () => { active = false; subscriptions.forEach((unsubscribe) => unsubscribe?.()); };
   }, []);
   useEffect(() => { onHudChange(data ? `${capitalize(data.membership.division)} - Rank ${data.membership.rank || "-"}` : "Loading standings"); }, [data, onHudChange]);
   if (!data) return <section className="league-workspace">{error ? <InlineError message={error} /> : <ArenaLoader />}</section>;
   const checkIn = async (bracketId) => {
-    try { await worldApi.checkIn(bracketId); setData(await worldApi.tournamentStatus()); }
+    try {
+      await worldApi.checkIn(bracketId);
+      setData((current) => current ? {
+        ...current,
+        brackets: current.brackets.map((bracket) => bracket.id !== bracketId ? bracket : {
+          ...bracket,
+          [bracket.player_one_id === current.membership.user_id ? "player_one_checked_in" : "player_two_checked_in"]: true,
+        }),
+      } : current);
+    }
     catch (nextError) { setError(nextError.message); }
   };
   const seasonDays = Math.max(1, Math.round((new Date(data.season.ends_at).getTime() - new Date(data.season.starts_at).getTime()) / 86400000));
@@ -511,12 +651,12 @@ function LeagueMode({ onHudChange }) {
   </section>;
 }
 
-function QuestPanel({ quests, onRefresh }) {
+function QuestPanel({ quests }) {
   const [busy, setBusy] = useState("");
   const [claimEffect, setClaimEffect] = useState(null);
   const claimEffectTimer = useRef(null);
   useEffect(() => () => window.clearTimeout(claimEffectTimer.current), []);
-  const run = async (id, action) => { setBusy(id); try { await action(); await onRefresh(); } finally { setBusy(""); } };
+  const run = async (id, action) => { setBusy(id); try { await action(); } finally { setBusy(""); } };
   const claimReward = async (quest) => {
     setBusy(quest.id);
     try {
@@ -524,7 +664,6 @@ function QuestPanel({ quests, onRefresh }) {
       setClaimEffect({ id: quest.id, tokens: quest.reward_tokens });
       window.clearTimeout(claimEffectTimer.current);
       claimEffectTimer.current = window.setTimeout(() => setClaimEffect(null), 1600);
-      await onRefresh();
     } finally {
       setBusy("");
     }
@@ -542,12 +681,12 @@ function QuestPanel({ quests, onRefresh }) {
   })}</div>;
 }
 
-export function ShopPanel({ data, onRefresh, onMissions }) {
+export function ShopPanel({ data, onMissions }) {
   const [busy, setBusy] = useState("");
   const [infoItem, setInfoItem] = useState(null);
   const [error, setError] = useState("");
   const owned = new Set((data?.inventory || []).map((item) => item.item_key));
-  const buy = async (item) => { setBusy(item.id); setError(""); try { await worldApi.purchase(item.id); await onRefresh(); } catch (nextError) { setError(nextError.message); } finally { setBusy(""); } };
+  const buy = async (item) => { setBusy(item.id); setError(""); try { await worldApi.purchase(item.id); } catch (nextError) { setError(nextError.message); } finally { setBusy(""); } };
   const shieldCount = data?.account?.streak_shields || 0;
   const balance = data?.account?.token_balance || 0;
   const hasLockedItems = SHOP.some((item) => !owned.has(item.id) && !(item.id === "streak-shield" && shieldCount >= 2) && balance < item.price);
@@ -565,7 +704,7 @@ export function ShopPanel({ data, onRefresh, onMissions }) {
   })}</div><ShopItemInfoDialog item={infoItem} owned={infoItem ? owned.has(infoItem.id) : false} shieldCount={shieldCount} balance={balance} onEarn={() => { setInfoItem(null); onMissions(); }} onClose={() => setInfoItem(null)} /></>;
 }
 
-function ProfilePanel({ data, onRefresh, onLogout }) {
+function ProfilePanel({ data, onLogout }) {
   const profile = data?.profile;
   const account = data?.account;
   const avatarInput = useRef(null);
@@ -594,7 +733,6 @@ function ProfilePanel({ data, onRefresh, onLogout }) {
     setMessage(null);
     try {
       await worldApi.updateProfile({ nickname: normalizedNickname });
-      await onRefresh();
       setEditingNickname(false);
       setMessage({ type: "success", text: renameCost ? "Nickname updated. 500 coins spent." : "Nickname updated. Your free rename was used." });
     } catch (nextError) {
@@ -621,7 +759,6 @@ function ProfilePanel({ data, onRefresh, onLogout }) {
     try {
       const avatarUrl = await worldApi.uploadAvatar(file);
       await worldApi.updateProfile({ avatarUrl });
-      await onRefresh();
       setMessage({ type: "success", text: "Avatar updated." });
     } catch (nextError) {
       setMessage({ type: "error", text: nextError.message });
