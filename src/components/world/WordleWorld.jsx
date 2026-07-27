@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
-  Activity, CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
+  Activity, BookOpenText, CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
   Gauge, Info, Loader2, LockKeyhole, LogIn, MoonStar, Pencil, RefreshCw,
   Radio, RotateCcw, ShieldCheck, Sunset, Swords, Target, Timer, TreePine, WifiOff, X, Zap,
 } from "lucide-react";
@@ -19,7 +19,7 @@ import { playInvalid, playKey, playLose, playReveal, playWin } from "@/lib/wordl
 import { ANSWERS } from "@/lib/wordle/words";
 import {
   DuelResultSheet, GameHud, MODES, ModeDrawer, PlayerDrawer, ProgressionInfoDialog, ResultSheet,
-  SeasonLeagueInfoDialog, SettingsPanel, ShopItemInfoDialog,
+  SeasonLeagueInfoDialog, SettingsPanel, ShopItemInfoDialog, WordDetailsDialog,
 } from "@/components/world/WorldChrome";
 import { useGamePreferences } from "@/components/world/useGamePreferences";
 import DeleteAccountDialog from "@/components/wordle/DeleteAccountDialog";
@@ -234,6 +234,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   const [roundNotice, setRoundNotice] = useState("");
   const [result, setResult] = useState(null);
   const [resultOpen, setResultOpen] = useState(false);
+  const [detailWord, setDetailWord] = useState("");
   const timers = useRef([]);
   const loggedAnswerRef = useRef("");
   const modeInfo = MODES.find((item) => item.id === mode) || MODES[0];
@@ -258,6 +259,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     setReward(null);
     setResult(null);
     setResultOpen(false);
+    setDetailWord("");
     try {
       const guestKey = GUEST_DAILY_KEY;
       const savedGuest = !authenticated && mode === "daily" ? JSON.parse(window.localStorage.getItem(guestKey) || "null") : null;
@@ -479,9 +481,11 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       <div className={`game-status ${message ? "has-message" : ""}`} role="status" aria-live="polite">
         {(phase === "submitting" || phase === "loading" || duelFinalizing) && <Loader2 className="world-inline-spinner" />}
         <span>{message || (duelFinalizing ? "Finalizing battle" : reward ? `+${reward.xp || 0} XP - +${reward.tokens || 0} tokens` : phase === "input" ? "Build a five-letter word" : phaseLabel(phase))}</span>
+        {mode !== "duel" && !resultOpen && !detailWord && result?.answer && !result.extraChanceAvailable && <button className="game-status-word-details" onClick={() => setDetailWord(result.answer)}><BookOpenText />Word details</button>}
       </div>
-      {mode !== "duel" && <ResultSheet open={resultOpen} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" />}
-      {mode === "duel" && <DuelResultSheet snapshot={battle} onAgain={onDuelAgain} onClose={NOOP} />}
+      {mode !== "duel" && <ResultSheet open={resultOpen && !detailWord} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" onWordDetails={setDetailWord} />}
+      {mode === "duel" && <DuelResultSheet snapshot={battle} open={!detailWord} onAgain={onDuelAgain} onClose={NOOP} onWordDetails={setDetailWord} />}
+      <WordDetailsDialog word={detailWord} open={Boolean(detailWord)} onClose={() => setDetailWord("")} />
     </section>
   );
 }

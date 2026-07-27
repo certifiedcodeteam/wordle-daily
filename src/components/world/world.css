@@ -297,6 +297,8 @@ html.wordle-dark .world-shell.game-first {
   text-align: center;
 }
 .game-first .game-status.has-message { color: var(--arena-ink); }
+.game-first .game-status-word-details { min-height: 26px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--arena-line); border-radius: 4px; padding: 0 9px; color: var(--arena-ink); background: var(--arena-panel); font-size: 9px; font-weight: 850; cursor: pointer; }
+.game-first .game-status-word-details svg { width: 13px; height: 13px; color: var(--arena-gold); }
 .game-first .world-inline-spinner { width: 14px; height: 14px; animation: arena-spin .8s linear infinite; }
 .game-first .round-notice {
   position: absolute;
@@ -908,6 +910,48 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
 .player-drawer .primary-world-command { color: var(--arena-panel); background: var(--arena-ink); }
 .result-actions .secondary-world-command,
 .player-drawer .secondary-world-command { color: var(--arena-ink); background: transparent; }
+.result-actions .word-details-command {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--arena-gold);
+  border-radius: 5px;
+  padding: 0 16px;
+  color: var(--arena-ink);
+  background: color-mix(in srgb, var(--arena-gold) 12%, var(--arena-panel));
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.result-actions .word-details-command svg { width: 17px; height: 17px; color: var(--arena-gold); }
+.word-details-sheet { max-height: min(720px, calc(100dvh - 28px)); justify-items: stretch; overflow-y: auto; text-align: left; }
+.word-details-heading { width: 100%; display: flex; align-items: center; gap: 13px; padding-right: 38px; }
+.word-details-heading > div:last-child { min-width: 0; display: grid; gap: 5px; }
+.word-details-heading [role="heading"] { overflow-wrap: anywhere; font-size: 30px; }
+.word-details-heading [role="heading"] + p { margin: 0; color: var(--arena-muted); font-size: 11px; font-weight: 750; text-transform: capitalize; }
+.word-details-emblem { width: 52px; height: 52px; flex: 0 0 52px; display: grid; place-items: center; border: 2px solid var(--arena-ink); border-radius: 5px; background: color-mix(in srgb, var(--arena-gold) 14%, var(--arena-panel)); }
+.word-details-emblem svg { width: 25px; height: 25px; color: var(--arena-gold); }
+.word-details-loading { min-height: 230px; display: grid; place-items: center; align-content: center; gap: 12px; color: var(--arena-muted); text-align: center; }
+.word-details-loading svg { width: 28px; height: 28px; animation: world-spin 900ms linear infinite; }
+.word-details-loading strong { font-size: 12px; }
+.word-details-error { min-height: 220px; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; }
+.word-details-error > svg { width: 28px; height: 28px; color: var(--arena-orange); }
+.word-details-error p { max-width: 34ch; margin: 0; color: var(--arena-muted); font-size: 12px; line-height: 1.5; }
+.word-details-error button { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--arena-ink); border-radius: 5px; padding: 0 14px; color: var(--arena-panel); background: var(--arena-ink); font-size: 11px; font-weight: 850; cursor: pointer; }
+.word-details-error button svg { width: 15px; height: 15px; }
+.word-details-content { width: 100%; display: grid; gap: 9px; }
+.word-details-content section { min-width: 0; display: grid; gap: 5px; border: 1px solid var(--arena-line); border-radius: 5px; padding: 13px; }
+.word-details-content section small { display: flex; align-items: center; gap: 5px; color: var(--arena-orange); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.word-details-content section small svg { width: 12px; height: 12px; }
+.word-details-content section p { margin: 0; color: var(--arena-muted); font-size: 11px; line-height: 1.55; }
+.word-details-content .word-definition { border-color: color-mix(in srgb, var(--arena-green) 55%, var(--arena-line)); background: color-mix(in srgb, var(--arena-green) 8%, var(--arena-panel)); }
+.word-details-content .word-definition p { color: var(--arena-ink); font-size: 14px; font-weight: 700; }
+.word-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.word-details-disclosure { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 2px 0 0; color: var(--arena-muted); font-size: 8px; font-weight: 750; text-transform: uppercase; }
+.word-details-disclosure svg { width: 11px; height: 11px; color: var(--arena-gold); }
 
 .game-first .duel-workspace,
 .game-first .league-workspace {
@@ -1155,6 +1199,8 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
   .result-sheet [role="heading"] { font-size: 28px; }
   .result-emblem { width: 58px; height: 58px; }
   .result-scoreline strong { font-size: 18px; }
+  .word-details-sheet { max-height: min(88dvh, 720px); }
+  .word-details-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

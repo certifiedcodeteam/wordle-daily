@@ -1,11 +1,13 @@
 // @ts-nocheck
+import { useEffect, useState } from "react";
 import {
-  CalendarDays, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
-  Infinity, Info, LogIn, Menu, Moon, Settings, ShoppingBag, Sparkles, Swords,
-  Timer, Trophy, Volume2, VolumeX, Zap,
+  BookOpenText, CalendarDays, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
+  Infinity, Info, Lightbulb, Loader2, LogIn, Menu, Moon, RefreshCw, Settings,
+  ShoppingBag, Sparkles, Swords, Timer, Trophy, Volume2, VolumeX, Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { worldApi } from "@/api/worldClient";
 
 export const MODES = [
   { id: "daily", label: "Daily", title: "Daily Challenge", icon: Sparkles },
@@ -118,7 +120,7 @@ function SettingRow({ icon: Icon, title, description, children }) {
   return <div className="setting-row"><Icon /><span><strong>{title}</strong><small>{description}</small></span>{children}</div>;
 }
 
-export function ResultSheet({ open, result, streak, onClose, onPrimary, primaryLabel, onSecondary, secondaryLabel }) {
+export function ResultSheet({ open, result, streak, onClose, onPrimary, primaryLabel, onSecondary, secondaryLabel, onWordDetails }) {
   if (!result) return null;
   const won = result.status === "won" || result.solved;
   return <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -136,13 +138,14 @@ export function ResultSheet({ open, result, streak, onClose, onPrimary, primaryL
       </div>
       <div className="result-actions">
         {onPrimary && <button className="primary-world-command" onClick={onPrimary}>{primaryLabel}</button>}
+        {result.answer && !result.extraChanceAvailable && <button className="word-details-command" onClick={() => onWordDetails?.(result.answer)}><BookOpenText />Word details</button>}
         {onSecondary && <button className="secondary-world-command" onClick={onSecondary}>{secondaryLabel}</button>}
       </div>
     </DialogContent>
   </Dialog>;
 }
 
-export function DuelResultSheet({ snapshot, onAgain, onClose }) {
+export function DuelResultSheet({ snapshot, open = true, onAgain, onClose, onWordDetails }) {
   if (!snapshot || snapshot.match?.status !== "complete") return null;
   const self = snapshot.self;
   const opponent = snapshot.opponent;
@@ -150,7 +153,7 @@ export function DuelResultSheet({ snapshot, onAgain, onClose }) {
   const draw = !snapshot.match.winner_user_id;
   const title = draw ? "Dead heat" : won ? "Battle won" : "Rival wins";
   const answer = snapshot.answer?.toUpperCase();
-  return <Dialog open onOpenChange={(next) => !next && onClose?.()}>
+  return <Dialog open={open} onOpenChange={(next) => !next && onClose?.()}>
     <DialogContent className={`result-sheet duel-result-sheet ${won ? "is-win" : "is-loss"}`}>
       <div className="result-emblem" aria-hidden="true">{won ? <Crown /> : <Swords />}</div>
       <DialogTitle>{title}</DialogTitle>
@@ -167,7 +170,50 @@ export function DuelResultSheet({ snapshot, onAgain, onClose }) {
         <ResultStat label="Tokens" value={self?.reward_tokens || 0} prefix="+" />
         <ResultStat label="League" value={self?.league_points || 0} prefix="+" />
       </div>
-      <div className="result-actions"><button className="primary-world-command" onClick={onAgain}>Play again</button></div>
+      <div className="result-actions">
+        <button className="primary-world-command" onClick={onAgain}>Play again</button>
+        {answer && <button className="word-details-command" onClick={() => onWordDetails?.(answer)}><BookOpenText />Word details</button>}
+      </div>
+    </DialogContent>
+  </Dialog>;
+}
+
+export function WordDetailsDialog({ word, open, onClose }) {
+  const [details, setDetails] = useState(null);
+  const [error, setError] = useState("");
+  const [requestKey, setRequestKey] = useState(0);
+
+  useEffect(() => {
+    if (!open || !word) return undefined;
+    let active = true;
+    setDetails(null);
+    setError("");
+    worldApi.wordDetails(word)
+      .then((result) => active && setDetails(result))
+      .catch((nextError) => active && setError(nextError.message));
+    return () => { active = false; };
+  }, [open, requestKey, word]);
+
+  return <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <DialogContent className="result-sheet word-details-sheet">
+      <div className="word-details-heading">
+        <div className="word-details-emblem" aria-hidden="true"><BookOpenText /></div>
+        <div>
+          <DialogTitle>{String(word || "").toUpperCase()}</DialogTitle>
+          <DialogDescription>{details ? `${details.partOfSpeech} / ${details.pronunciation}` : "Word details"}</DialogDescription>
+        </div>
+      </div>
+      {!details && !error && <div className="word-details-loading" role="status"><Loader2 /><strong>Looking up the word</strong></div>}
+      {error && <div className="word-details-error" role="alert"><Info /><p>{error}</p><button onClick={() => setRequestKey((value) => value + 1)}><RefreshCw />Try again</button></div>}
+      {details && <div className="word-details-content">
+        <section className="word-definition"><small>Definition</small><p>{details.definition}</p></section>
+        <section><small>In a sentence</small><p>{details.example}</p></section>
+        <div className="word-details-grid">
+          <section><small>Origin</small><p>{details.origin}</p></section>
+          <section><small><Lightbulb />Usage note</small><p>{details.usageNote}</p></section>
+        </div>
+        <p className="word-details-disclosure"><Sparkles />Generated by Base44 AI</p>
+      </div>}
     </DialogContent>
   </Dialog>;
 }

@@ -207,9 +207,13 @@ Never commit `.env.local` or credentials.
 
 ### Change the word lists or game rules
 
-- Client word helpers: `src/lib/wordle/`
+- Curated answer seed and exclusions: `data/word-lists/`
+- Generated client and server word lists: `src/lib/wordle/words.js` and `base44/shared/words.js`
+- Word-list generator: `scripts/generate-word-lists.mjs`
 - Server evaluation and session rules: `base44/shared/session-service.js`
 - Game endpoints: `base44/functions/game/`
+
+Run `npm run words:generate` after changing the seed or exclusions. The generator preserves the curated schedule, extends it with common SCOWL words ranked by SUBTLEX-US frequency, and builds the full accepted-guess set from `word-list`. `npm test` checks that the generated frontend and backend modules remain synchronized.
 
 Keep answer validation and reward rules on the server. Client-only checks should be treated as interaction feedback, not authority.
 

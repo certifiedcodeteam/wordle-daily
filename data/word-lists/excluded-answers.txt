@@ -1,0 +1,8 @@
+# Valid guesses that should not become scheduled answers.
+bimbo
+boobs
+booby
+intel
+porno
+slave
+thong

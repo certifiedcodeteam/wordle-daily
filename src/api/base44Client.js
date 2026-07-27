@@ -24,7 +24,7 @@ const guestClient = {
     get: () => new Proxy({}, { get: () => unavailable }),
   }),
   functions: { invoke: unavailable, fetch: unavailable },
-  integrations: { Core: { UploadFile: unavailable } },
+  integrations: { Core: { InvokeLLM: unavailable, UploadFile: unavailable } },
   analytics: { track: () => {} },
   appLogs: { logUserInApp: async () => {} },
 };
