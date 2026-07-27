@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -15,6 +15,8 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import WordleLoader from './components/WordleLoader';
+
+const PromoCapture = lazy(() => import('./pages/PromoCapture'));
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -47,6 +49,25 @@ const AuthenticatedApp = () => {
   );
 };
 
+const AppContent = () => {
+  const location = useLocation();
+
+  // Intentionally unlinked and isolated from auth: a promotional capture workspace.
+  if (location.pathname === '/promo-capture') {
+    return <Suspense fallback={null}><PromoCapture /></Suspense>;
+  }
+
+  return (
+    <AuthProvider>
+      <QueryClientProvider client={queryClientInstance}>
+        <ScrollToTop />
+        <AuthenticatedApp />
+      </QueryClientProvider>
+      <Toaster />
+    </AuthProvider>
+  );
+};
+
 
 function App() {
   useEffect(() => {
@@ -56,15 +77,9 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <Router>
+      <AppContent />
+    </Router>
   )
 }
 
