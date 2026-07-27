@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import AuthRecoveryActions from "@/components/AuthRecoveryActions";
 
 const READY_WORD = "READY";
 
@@ -155,6 +156,7 @@ export default function Register() {
         subtitle={<>We sent a code to <strong>{email}</strong>.</>}
       >
         {error && <div className="auth-alert" role="alert"><AlertCircle aria-hidden="true" /><span>{error}</span></div>}
+        {error && isAuthenticated && <AuthRecoveryActions onRetry={finish} busy={loading} />}
         <div className="auth-otp-wrap">
           <InputOTP
             maxLength={6}

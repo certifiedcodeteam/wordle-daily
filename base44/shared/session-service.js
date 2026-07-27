@@ -152,7 +152,7 @@ export async function submitGuess(base44, input = {}) {
   return result;
 }
 
-async function answerFor(admin, session) {
+export async function answerFor(admin, session) {
   if (session.mode === "daily") return dailyPuzzle(new Date(`${session.puzzle_key.slice(6)}T00:00:00Z`)).answer;
   const secrets = await admin.PuzzleSecret.filter({ session_id: session.id, round_number: session.round_number }, "-created_date", 1);
   if (!secrets[0]) throw new Error("Puzzle secret missing");

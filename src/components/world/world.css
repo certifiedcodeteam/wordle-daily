@@ -205,12 +205,15 @@ html.wordle-dark .world-shell.game-first {
   min-height: 0;
   display: grid;
   place-items: center;
+  overflow: hidden;
   padding: 4px 0;
 }
 
 .game-first .world-board {
-  width: min(370px, calc(100vw - 34px));
-  max-height: calc(100dvh - 292px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  width: auto;
+  max-width: min(370px, calc(100vw - 34px));
+  height: min(100%, 444px);
+  max-height: 100%;
   display: grid;
   grid-template-rows: repeat(var(--world-rows), 1fr);
   gap: clamp(4px, .65dvh, 6px);
@@ -1161,7 +1164,7 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
   .game-first .arena-heading h1 { font-size: 18px; }
   .game-first .arena-score strong { font-size: 20px; }
   .game-first .mode-timer { min-width: 82px; height: 34px; font-size: 15px !important; }
-  .game-first .world-board { width: min(330px, calc(100vw - 30px)); max-height: calc(100dvh - 276px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .game-first .world-board { width: auto; max-width: min(330px, calc(100vw - 30px)); height: min(100%, 396px); max-height: 100%; }
   .game-first .world-keyboard { gap: 5px; }
   .game-first .world-keyboard-row { gap: 3px; }
   .game-first .world-keyboard button { height: clamp(43px, 6.3dvh, 53px); font-size: 10px; }
@@ -1179,7 +1182,7 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
   .battle-progress { gap: 2px; }
   .battle-progress i { height: 4px; }
   .battle-callout { font-size: 8px; }
-  .game-first .duel-game-workspace .world-board { max-height: calc(100dvh - 332px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .game-first .duel-game-workspace .world-board { height: min(100%, 360px); max-height: 100%; }
   .game-first .duel-workspace,
   .game-first .league-workspace { padding: 10px 10px max(24px, env(safe-area-inset-bottom, 0px)); }
   .game-first .matchmaking-state { min-height: 330px; }
@@ -1213,14 +1216,14 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
 @media (max-width: 380px) {
   .game-first .hud-mode small { display: none; }
   .game-first .hud-mode { justify-content: flex-start; }
-  .game-first .world-board { width: min(304px, calc(100vw - 24px)); }
+  .game-first .world-board { width: auto; max-width: min(304px, calc(100vw - 24px)); }
   .game-first .world-keyboard button { height: 42px; }
 }
 
 @media (max-height: 650px) and (min-width: 721px) {
   .game-first .game-workspace { padding-top: 7px; }
   .game-first .arena-heading { min-height: 42px; padding-bottom: 6px; }
-  .game-first .world-board { max-height: calc(100dvh - 318px); width: min(265px, calc(100vw - 40px)); }
+  .game-first .world-board { width: auto; max-width: min(265px, calc(100vw - 40px)); height: min(100%, 318px); max-height: 100%; }
   .game-first .world-keyboard button { height: 42px; }
   .game-first .game-status { min-height: 20px; }
 }

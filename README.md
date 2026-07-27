@@ -257,6 +257,27 @@ npm run audit:production
 
 The frontend checks use ESLint and TypeScript. Backend linting and type checks use Deno. The production audit checks the repository for configuration and delivery issues that are easy to miss during local development.
 
+## Contest Submission Evidence
+
+Wordle World maps the judging criteria to concrete Base44 resources and visible behavior:
+
+| Criterion | Evidence |
+| --- | --- |
+| Server-authoritative gameplay | `base44/functions/game/start`, `guess`, `status`; answers remain in admin-only `PuzzleSecret`. |
+| Reliable onboarding and persistence | `base44/shared/provisioning-service.js` leases player, quests, and league setup; `src/lib/auth-flow.js` claims guest progress and has a bounded timeout. |
+| Secure, useful AI | `base44/functions/game/word-details` verifies completed-session ownership, reads the answer server-side, validates structured Base44 AI output, and caches `WordInsight` under admin-only RLS. The UI presents it as post-game learning. |
+| Realtime multiplayer | Duel functions and `DuelMatch`/`DuelParticipant` subscriptions expose reconnecting presence, bot fallback, version conflicts, and idempotent progress. |
+| Economy and competition | Wallet transactions, quests, league memberships, leaderboards, and tournament brackets are server-mutated and operation-key protected. |
+| Quality and accessibility | 50 Node tests cover scoring, concurrency, repair merges, access control, rapid input, routes, and recovery; reduced motion, contrast, sound, haptics, labels, retry states, and responsive grid tracks are implemented in the UI. |
+
+### Final verification run
+
+Before submission, run `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run audit:production`, then deploy resources and site together with `npx base44 deploy -y`. For duplicate data, call `admin/repair-data` as an admin with its default dry-run, review the report, then apply exactly once with confirmation `repair-duplicate-player-data`; repeat dry-run until all duplicate counts are zero.
+
+### Demo script
+
+Record a short, uninterrupted walkthrough: play a guest Daily, register and show the same progress after OTP verification, demonstrate Endless and Rush, complete a bot Duel with reconnecting presence, open League and missions/economy, finish a round and open Word details, then show the backend function/entity/RLS map and the passing verification commands. The App ID for this submission is `6a6602ebe3108d55249f1c2d`; the July 9 commit is Base44-generated scaffolding and substantive contest work follows in the current history.
+
 ## Publishing
 
 For a GitHub-connected Base44 app:

@@ -100,15 +100,27 @@ export function authPresentation(intent = {}) {
   return AUTH_PRESENTATIONS[intent.mode] || AUTH_PRESENTATIONS.default;
 }
 
-export async function completeAuthFlow(checkUserAuth, storage = globalThis.localStorage) {
-  await checkUserAuth();
-  const intent = readAuthIntent(storage);
-  let claim = null;
-  if (intent.guestSessionId) {
-    claim = await worldApi.claimGuestSession(intent.guestSessionId);
-    storage?.removeItem(GUEST_DAILY_KEY);
+export async function completeAuthFlow(checkUserAuth, storage = globalThis.localStorage, timeoutMs = 10000) {
+  const flow = async () => {
+    const user = await checkUserAuth({ blocking: false });
+    if (!user) throw new Error("Your session could not be verified. Try signing in again.");
+    const intent = readAuthIntent(storage);
+    let claim = null;
+    if (intent.guestSessionId) {
+      claim = await worldApi.claimGuestSession(intent.guestSessionId);
+      storage?.removeItem(GUEST_DAILY_KEY);
+    }
+    const player = await worldApi.bootstrap();
+    clearAuthIntent(storage);
+    return { intent, claim, player, destination: authDestination(intent) };
+  };
+  let timer;
+  try {
+    return await Promise.race([
+      flow(),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Player setup took too long. Check your connection and retry.")), timeoutMs); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
   }
-  const player = await worldApi.bootstrap();
-  clearAuthIntent(storage);
-  return { intent, claim, player, destination: authDestination(intent) };
 }

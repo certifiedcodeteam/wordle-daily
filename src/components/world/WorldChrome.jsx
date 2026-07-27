@@ -178,21 +178,21 @@ export function DuelResultSheet({ snapshot, open = true, onAgain, onClose, onWor
   </Dialog>;
 }
 
-export function WordDetailsDialog({ word, open, onClose }) {
+export function WordDetailsDialog({ word, sessionId, open, onClose }) {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState("");
   const [requestKey, setRequestKey] = useState(0);
 
   useEffect(() => {
-    if (!open || !word) return undefined;
+    if (!open || !word || !sessionId) return undefined;
     let active = true;
     setDetails(null);
     setError("");
-    worldApi.wordDetails(word)
+    worldApi.wordDetails(sessionId)
       .then((result) => active && setDetails(result))
       .catch((nextError) => active && setError(nextError.message));
     return () => { active = false; };
-  }, [open, requestKey, word]);
+  }, [open, requestKey, sessionId, word]);
 
   return <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
     <DialogContent className="result-sheet word-details-sheet">

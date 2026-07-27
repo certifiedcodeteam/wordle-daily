@@ -10,6 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { worldApi, trackWorld } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
 import { shouldIgnoreGlobalKeydown } from "@/lib/dom";
+import { updateGameDraft } from "@/lib/game-draft";
 import { GUEST_DAILY_KEY, saveAuthIntent } from "@/lib/auth-flow";
 import { nextDuelSync } from "@/lib/duel-sync";
 import {
@@ -225,6 +226,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   const [session, setSession] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [draft, setDraft] = useState("");
+  const draftRef = useRef("");
   const [phase, setPhase] = useState("loading");
   const [message, setMessage] = useState("");
   const [reward, setReward] = useState(null);
@@ -255,6 +257,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     setPhase("loading");
     setMessage("");
     setAttempts([]);
+    draftRef.current = "";
     setDraft("");
     setReward(null);
     setResult(null);
@@ -391,15 +394,17 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
 
   const submit = useCallback(async () => {
     if (inputLocked) return;
-    if (draft.length !== 5) { invalidGuess("Enter all 5 letters"); return; }
+    const currentDraft = draftRef.current;
+    if (currentDraft.length !== 5) { invalidGuess("Enter all 5 letters"); return; }
     setPhase("submitting");
     setMessage("");
     try {
-      const guess = draft;
+      const guess = currentDraft;
       const response = await worldApi.guess(session.sessionId, guess, session.version);
       const attempt = { word: guess, evaluation: response.evaluation, sequence: attempts.length + 1 };
       const nextAttempts = [...attempts, attempt];
       setAttempts(nextAttempts);
+      draftRef.current = "";
       setDraft("");
       setReward(response.rewards || null);
       setRevealingRow(attempts.length);
@@ -412,22 +417,28 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       invalidGuess(error.message);
       setPhase("input");
     }
-  }, [attempts, draft, finishRound, inputLocked, invalidGuess, later, onAccountChange, session, start]);
+  }, [attempts, finishRound, inputLocked, invalidGuess, later, onAccountChange, session, start]);
 
   const onKey = useCallback((key) => {
     if (inputLocked) return;
     unlockAudio();
     if (key === "Enter") { submit(); return; }
     if (key === "Backspace") {
-      if (draft) { playKey(); haptic(8); setDraft((value) => value.slice(0, -1)); }
+      if (draftRef.current) {
+        playKey();
+        haptic(8);
+        draftRef.current = updateGameDraft(draftRef.current, key);
+        setDraft(draftRef.current);
+      }
       return;
     }
-    if (/^[a-z]$/i.test(key) && draft.length < 5) {
+    if (/^[a-z]$/i.test(key) && draftRef.current.length < 5) {
       playKey();
       haptic(8);
-      setDraft((value) => `${value}${key.toLowerCase()}`);
+      draftRef.current = updateGameDraft(draftRef.current, key);
+      setDraft(draftRef.current);
     }
-  }, [draft, haptic, inputLocked, submit, unlockAudio]);
+  }, [haptic, inputLocked, submit, unlockAudio]);
 
   useEffect(() => {
     const listener = (event) => {
@@ -485,7 +496,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       </div>
       {mode !== "duel" && <ResultSheet open={resultOpen && !detailWord} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" onWordDetails={setDetailWord} />}
       {mode === "duel" && <DuelResultSheet snapshot={battle} open={!detailWord} onAgain={onDuelAgain} onClose={NOOP} onWordDetails={setDetailWord} />}
-      <WordDetailsDialog word={detailWord} open={Boolean(detailWord)} onClose={() => setDetailWord("")} />
+      <WordDetailsDialog word={detailWord} sessionId={session?.sessionId} open={Boolean(detailWord)} onClose={() => setDetailWord("")} />
     </section>
   );
 }

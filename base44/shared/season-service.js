@@ -1,5 +1,6 @@
 import { requireUser, getOrCreatePlayer } from "./platform.js";
 import { hydratePlayerIdentities } from "./player-identity.js";
+import { provisionForUser } from "./provisioning-service.js";
 
 const SEASON_EPOCH = Date.UTC(2026, 0, 1);
 const SEASON_DAYS = 28;
@@ -21,19 +22,33 @@ export async function ensureSeason(base44, user) {
     key: window.key, name: `Season ${window.index + 1}`, status: new Date() >= window.leagueEnds ? "cup" : "active",
     starts_at: window.starts.toISOString(), league_ends_at: window.leagueEnds.toISOString(), ends_at: window.ends.toISOString(),
   });
-  let membership = (await admin.LeagueMembership.filter({ season_id: season.id, user_id: user.id }, "-created_date", 1))[0];
-  if (!membership) {
-    const { profile } = await getOrCreatePlayer(base44, user);
-    const priorMemberships = await admin.LeagueMembership.filter({ user_id: user.id }, "-created_date", 10);
-    const prior = priorMemberships.find((entry) => entry.season_id !== season.id);
-    const division = prior ? nextDivision(prior.division, prior.rank) : "bronze";
-    const seededRating = prior ? 1000 + Math.round((prior.duel_rating - 1000) * 0.5) : 1000;
-    const cohortMembers = await admin.LeagueMembership.filter({ season_id: season.id, division }, "created_date", 5000);
-    const cohort = Math.floor(cohortMembers.length / 30) + 1;
-    membership = await admin.LeagueMembership.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, league_points: 0, duel_rating: seededRating, rank: cohortMembers.length % 30 + 1, cup_qualified: false, applied_operation_keys: [] });
-    await admin.LeaderboardEntry.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, points: 0, wins: 0, rank: membership.rank, updated_at: new Date().toISOString(), applied_operation_keys: [] });
-    if (divisionRank(division) > divisionRank(profile.peak_division)) await admin.PlayerProfile.update(profile.id, { peak_division: division });
-  }
+  const load = async () => {
+    const [memberships, entries] = await Promise.all([
+      admin.LeagueMembership.filter({ season_id: season.id, user_id: user.id }, "created_date", 1),
+      admin.LeaderboardEntry.filter({ season_id: season.id, user_id: user.id }, "created_date", 1),
+    ]);
+    return memberships[0] && entries[0] ? memberships[0] : null;
+  };
+  const membership = await provisionForUser({
+    admin, user, scope: "league", key: season.key, load,
+    provision: async () => {
+      const { profile } = await getOrCreatePlayer(base44, user);
+      const memberships = await admin.LeagueMembership.filter({ season_id: season.id, user_id: user.id }, "created_date", 1);
+      let current = memberships[0];
+      if (!current) {
+        const priorMemberships = await admin.LeagueMembership.filter({ user_id: user.id }, "-created_date", 10);
+        const prior = priorMemberships.find((entry) => entry.season_id !== season.id);
+        const division = prior ? nextDivision(prior.division, prior.rank) : "bronze";
+        const seededRating = prior ? 1000 + Math.round((prior.duel_rating - 1000) * 0.5) : 1000;
+        const cohortMembers = await admin.LeagueMembership.filter({ season_id: season.id, division }, "created_date", 5000);
+        const cohort = Math.floor(cohortMembers.length / 30) + 1;
+        current = await admin.LeagueMembership.create({ season_id: season.id, user_id: user.id, handle: profile.handle, division, cohort, league_points: 0, duel_rating: seededRating, rank: cohortMembers.length % 30 + 1, cup_qualified: false, applied_operation_keys: [] });
+        if (divisionRank(division) > divisionRank(profile.peak_division)) await admin.PlayerProfile.update(profile.id, { peak_division: division });
+      }
+      const entries = await admin.LeaderboardEntry.filter({ season_id: season.id, user_id: user.id }, "created_date", 1);
+      if (!entries[0]) await admin.LeaderboardEntry.create({ season_id: season.id, user_id: user.id, handle: current.handle, division: current.division, cohort: current.cohort, points: current.league_points, wins: 0, rank: current.rank, updated_at: new Date().toISOString(), applied_operation_keys: [] });
+    },
+  });
   return { season, membership };
 }
 

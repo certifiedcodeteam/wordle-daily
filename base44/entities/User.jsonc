@@ -7,7 +7,23 @@
         "admin",
         "user"
       ]
-    }
+    },
+    "player_provision_key": { "type": "string" },
+    "player_provision_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "player_provision_token": { "type": "string" },
+    "player_provision_claimed_at": { "type": "string", "format": "date-time" },
+    "daily_quest_provision_key": { "type": "string" },
+    "daily_quest_provision_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "daily_quest_provision_token": { "type": "string" },
+    "daily_quest_provision_claimed_at": { "type": "string", "format": "date-time" },
+    "weekly_quest_provision_key": { "type": "string" },
+    "weekly_quest_provision_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "weekly_quest_provision_token": { "type": "string" },
+    "weekly_quest_provision_claimed_at": { "type": "string", "format": "date-time" },
+    "league_provision_key": { "type": "string" },
+    "league_provision_status": { "type": "string", "enum": ["pending", "working", "complete"] },
+    "league_provision_token": { "type": "string" },
+    "league_provision_claimed_at": { "type": "string", "format": "date-time" }
   },
   "required": [
     "role"

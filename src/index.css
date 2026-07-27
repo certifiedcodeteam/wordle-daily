@@ -1,18 +1,20 @@
-@font-face {
-  font-family: "Dazzed";
-  src: url("/Dazzed/DazzedVF-TRIAL.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
+.app-error-boundary {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #171a17;
+  background: #f7f6f1;
+  text-align: center;
 }
-
-@font-face {
-  font-family: "Dazzed";
-  src: url("/Dazzed/Dazzed-TRIAL-RegularItalic.woff2") format("woff2");
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-}
+.app-error-boundary strong { font-size: 24px; }
+.app-error-boundary p { max-width: 44ch; margin: 0; line-height: 1.5; }
+.app-error-boundary div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.app-error-boundary button,
+.app-error-boundary a { min-height: 42px; display: inline-flex; align-items: center; border: 1px solid #171a17; border-radius: 5px; padding: 0 15px; color: inherit; background: transparent; font-weight: 800; text-decoration: none; cursor: pointer; }
+.app-error-boundary button { color: #f7f6f1; background: #171a17; }
 
 @tailwind base;
 @tailwind components;
@@ -61,9 +63,9 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --font-heading: "Dazzed", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "Dazzed", ui-sans-serif, system-ui, sans-serif;
-    --font-display: "Dazzed", ui-sans-serif, system-ui, sans-serif;
+    --font-heading: "Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

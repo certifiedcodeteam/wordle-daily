@@ -16,6 +16,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Admin from './pages/Admin';
 import WordleLoader from './components/WordleLoader';
+import AppErrorBoundary from './components/AppErrorBoundary';
 import { legacyWorldDestination, parseWorldPath, worldTransitionKey } from '@/lib/world-routes';
 
 const PromoCapture = lazy(() => import('./pages/PromoCapture'));
@@ -79,7 +80,7 @@ const AppContent = () => {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <ScrollToTop />
-        <AuthenticatedApp />
+        <AppErrorBoundary resetKey={location.pathname}><AuthenticatedApp /></AppErrorBoundary>
       </QueryClientProvider>
       <Toaster />
     </AuthProvider>

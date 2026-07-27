@@ -1,0 +1,22 @@
+{
+  "name": "WordInsight",
+  "type": "object",
+  "properties": {
+    "word": { "type": "string" },
+    "part_of_speech": { "type": "string" },
+    "pronunciation": { "type": "string" },
+    "definition": { "type": "string" },
+    "example": { "type": "string" },
+    "origin": { "type": "string" },
+    "usage_note": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "schema_version": { "type": "integer" }
+  },
+  "required": ["word", "part_of_speech", "pronunciation", "definition", "example", "origin", "usage_note", "generated_at", "schema_version"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

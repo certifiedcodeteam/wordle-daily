@@ -35,5 +35,18 @@ export default defineConfig(({ mode }) => {
         },
       },
     } : {}),
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('@radix-ui') || id.includes('cmdk') || id.includes('vaul')) return 'ui-vendor'
+            if (id.includes('react') || id.includes('@tanstack') || id.includes('framer-motion')) return 'react-vendor'
+            if (id.includes('recharts') || id.includes('three') || id.includes('html2canvas')) return 'rich-vendor'
+            return undefined
+          },
+        },
+      },
+    },
   }
 });

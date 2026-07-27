@@ -6,6 +6,22 @@ export interface User {
    * The role of the user in the app
    */
   role: "admin" | "user";
+  player_provision_key?: string;
+  player_provision_status?: "pending" | "working" | "complete";
+  player_provision_token?: string;
+  player_provision_claimed_at?: string;
+  daily_quest_provision_key?: string;
+  daily_quest_provision_status?: "pending" | "working" | "complete";
+  daily_quest_provision_token?: string;
+  daily_quest_provision_claimed_at?: string;
+  weekly_quest_provision_key?: string;
+  weekly_quest_provision_status?: "pending" | "working" | "complete";
+  weekly_quest_provision_token?: string;
+  weekly_quest_provision_claimed_at?: string;
+  league_provision_key?: string;
+  league_provision_status?: "pending" | "working" | "complete";
+  league_provision_token?: string;
+  league_provision_claimed_at?: string;
 }
 
 export interface AchievementUnlock {
@@ -33,9 +49,22 @@ export interface CupBracket {
   advancement_status?: "pending" | "working" | "complete";
 }
 
+export interface DuelBotState {
+  match_id: string;
+  participant_id: string;
+  persona_key: string;
+  handle: string;
+  avatar_seed: string;
+  division: string;
+  rating: number;
+  will_solve: boolean;
+  target_guesses: number;
+  schedule_ms: number[];
+}
+
 export interface DuelMatch {
   kind: "ranked" | "private" | "cup";
-  status: "waiting" | "active" | "complete" | "cancelled";
+  status: "waiting" | "lobby" | "countdown" | "active" | "complete" | "cancelled";
   invite_code?: string;
   player_one_id: string;
   player_two_id?: string;
@@ -44,6 +73,8 @@ export interface DuelMatch {
   session_two_id?: string;
   started_at?: string;
   deadline?: string;
+  fallback_at?: string;
+  countdown_ends_at?: string;
   version: number;
   season_id?: string;
   bracket_id?: string;
@@ -55,11 +86,31 @@ export interface DuelParticipant {
   match_id: string;
   user_id: string;
   handle: string;
+  avatar_seed?: string;
   guesses_used: number;
   status: "ready" | "playing" | "won" | "lost" | "forfeit";
+  controller?: "human" | "bot";
+  live_state?:
+    | "lobby"
+    | "ready"
+    | "thinking"
+    | "typing"
+    | "checking"
+    | "locked_in"
+    | "solved"
+    | "finished"
+    | "reconnecting";
+  persona_key?: string;
+  division?: string;
+  departed_user_id?: string;
+  connection_lost_at?: string;
+  next_update_at?: string;
   elapsed_ms?: number;
   rating_before: number;
   rating_change: number;
+  reward_xp?: number;
+  reward_tokens?: number;
+  league_points?: number;
   last_seen_at: string;
   applied_operation_keys?: string[];
 }
@@ -209,6 +260,18 @@ export interface WalletTransaction {
   delivery_status?: "pending" | "delivering" | "complete";
 }
 
+export interface WordInsight {
+  word: string;
+  part_of_speech: string;
+  pronunciation: string;
+  definition: string;
+  example: string;
+  origin: string;
+  usage_note: string;
+  generated_at: string;
+  schema_version: number;
+}
+
 export interface WordlePlayerState {
   /**
    * Owner ID for imported legacy records
@@ -229,6 +292,7 @@ declare module '@base44/sdk' {
     "User": User;
     "AchievementUnlock": AchievementUnlock;
     "CupBracket": CupBracket;
+    "DuelBotState": DuelBotState;
     "DuelMatch": DuelMatch;
     "DuelParticipant": DuelParticipant;
     "GameSession": GameSession;
@@ -242,28 +306,35 @@ declare module '@base44/sdk' {
     "PuzzleSecret": PuzzleSecret;
     "Season": Season;
     "WalletTransaction": WalletTransaction;
+    "WordInsight": WordInsight;
     "WordlePlayerState": WordlePlayerState;
   }
   
   interface FunctionNameRegistry {
     "account/delete": true;
-    "duel/queue": true;
-    "duel/status": true;
-    "duel/create-private": true;
-    "duel/join-private": true;
-    "duel/forfeit": true;
     "economy/purchase": true;
-    "legacy/import": true;
+    "game/claim-guest": true;
     "game/bootstrap": true;
     "game/buy-extra-guess": true;
-    "game/guess": true;
     "game/start": true;
-    "quests/reroll": true;
-    "quests/claim": true;
-    "profile/update": true;
+    "game/guess": true;
     "game/status": true;
+    "duel/create-private": true;
+    "game/word-details": true;
+    "duel/current": true;
+    "duel/presence": true;
+    "duel/forfeit": true;
+    "duel/join-private": true;
+    "duel/queue": true;
+    "duel/status": true;
+    "admin/reset-demo": true;
+    "admin/repair-data": true;
+    "legacy/import": true;
+    "profile/update": true;
+    "quests/claim": true;
     "tournament/check-in": true;
-    "tournament/status": true;
+    "quests/reroll": true;
     "tournament/enroll": true;
+    "tournament/status": true;
   }
 }

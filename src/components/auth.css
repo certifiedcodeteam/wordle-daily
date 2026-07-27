@@ -213,6 +213,10 @@ html.wordle-dark .auth-field-error { color: #ff8d80; }
 .auth-alert { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 17px; border-left: 3px solid #b43a2f; padding: 10px 12px; color: #862a22; background: color-mix(in srgb, #b43a2f 8%, transparent); font-size: 12px; line-height: 1.4; }
 html.wordle-dark .auth-alert { color: #ffb2a9; }
 .auth-alert svg { width: 17px; height: 17px; flex: 0 0 17px; }
+.auth-recovery-actions { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10px; margin: -7px 0 17px; }
+.auth-recovery-actions > a { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; color: var(--auth-ink); font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.auth-recovery-actions button { min-height: 40px; gap: 7px; }
+.auth-recovery-actions svg { width: 15px; height: 15px; }
 
 .auth-footer { margin-top: 22px; color: var(--auth-muted); font-size: 13px; text-align: center; }
 .auth-footer a { color: var(--auth-orange); font-weight: 800; text-decoration: none; }

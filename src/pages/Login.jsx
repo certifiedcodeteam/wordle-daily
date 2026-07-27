@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import AuthRecoveryActions from "@/components/AuthRecoveryActions";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -69,6 +70,7 @@ export default function Login() {
       footer={<>New to Wordle World? <Link to="/register">Create your player</Link></>}
     >
       {error && <div className="auth-alert" role="alert"><AlertCircle aria-hidden="true" /><span>{error}</span></div>}
+      {error && isAuthenticated && <AuthRecoveryActions onRetry={finish} busy={loading} />}
 
       <Button type="button" variant="outline" className="auth-google-button" onClick={handleGoogle} disabled={loading}>
         <GoogleIcon className="w-5 h-5" />
