@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { applyEntityOperation, runWalletDelivery } from "../base44/shared/delivery-service.js";
 import { canAccessSession } from "../base44/shared/session-access.js";
+import { claimGuestDaily } from "../base44/shared/session-claim.js";
+import { dailyPuzzle } from "../base44/shared/game-engine.js";
 
 test("guest sessions are available only to unauthenticated callers", () => {
   assert.equal(canAccessSession({ guest: true, owner_user_id: "" }, null), true);
@@ -9,6 +11,62 @@ test("guest sessions are available only to unauthenticated callers", () => {
   assert.equal(canAccessSession({ guest: false, owner_user_id: "user-1" }, { id: "user-1" }), true);
   assert.equal(canAccessSession({ guest: false, owner_user_id: "user-1" }, { id: "user-2" }), false);
   assert.equal(canAccessSession({ guest: false, owner_user_id: "user-1" }, null), false);
+});
+
+test("claiming a guest Daily transfers the session, attempts, and account link", async () => {
+  const session = {
+    id: "guest-session-1",
+    guest: true,
+    owner_user_id: "",
+    mode: "daily",
+    puzzle_key: dailyPuzzle(new Date()).key,
+    status: "playing",
+  };
+  const account = { id: "account-1", user_id: "user-1", xp_total: 0 };
+  const profile = { id: "profile-1", user_id: "user-1" };
+  const updates = [];
+  const admin = {
+        GameSession: {
+          get: async () => ({ ...session }),
+          updateMany: async (query, update) => {
+            updates.push({ entity: "session", query, update });
+            Object.assign(session, update.$set);
+            return { updated: 1 };
+          },
+        },
+        GuessAttempt: {
+          updateMany: async (query, update) => {
+            updates.push({ entity: "attempt", query, update });
+            return { updated: 2 };
+          },
+        },
+        PlayerAccount: {
+          filter: async () => [account],
+          update: async (id, update) => {
+            updates.push({ entity: "account", id, update });
+            return { ...account, ...update };
+          },
+        },
+        PlayerProfile: { filter: async () => [profile] },
+  };
+
+  const result = await claimGuestDaily({
+    admin,
+    user: { id: "user-1", email: "player@example.com" },
+    sessionId: session.id,
+    currentDailyKey: session.puzzle_key,
+    getPlayer: async () => ({ account, profile }),
+    settleWonSession: async () => null,
+  });
+
+  assert.deepEqual(result, { claimed: true, sessionId: session.id, status: "playing", rewards: undefined });
+  assert.equal(session.guest, false);
+  assert.equal(session.owner_user_id, "user-1");
+  assert.deepEqual(updates.at(-1), {
+    entity: "account",
+    id: "account-1",
+    update: { daily_session_key: session.puzzle_key, daily_session_id: session.id },
+  });
 });
 
 test("entity operations atomically guard and record an operation key", async () => {

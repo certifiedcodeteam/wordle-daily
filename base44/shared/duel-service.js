@@ -1,6 +1,7 @@
 import { compareDuel, randomAnswer, utcDayKey } from "./game-engine.js";
 import { ensureSeason } from "./season-service.js";
 import { applyEntityOperation, getOrCreatePlayer, mutateWallet, requireUser, runWalletDelivery } from "./platform.js";
+import { hydratePlayerIdentities } from "./player-identity.js";
 
 export async function createPrivateDuel(base44) {
   const user = await requireUser(base44);
@@ -152,7 +153,7 @@ export async function duelStatus(base44, matchId) {
     participants = await admin.DuelParticipant.filter({ match_id: match.id }, "created_date", 2);
   }
   const sessionId = user.id === match.player_one_id ? match.session_one_id : match.session_two_id;
-  return { match, participants, sessionId };
+  return { match, participants: await hydratePlayerIdentities(admin, participants), sessionId };
 }
 
 async function finalizeMatch(base44, match, participants) {

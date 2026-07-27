@@ -17,6 +17,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import { worldApi } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
+import { shouldIgnoreGlobalKeydown } from "@/lib/dom";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -282,7 +283,7 @@ export default function WordleGame() {
 
   useEffect(() => {
     const listener = (event) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || shouldIgnoreGlobalKeydown(event)) return;
       if (event.key === "Enter" || event.key === "Backspace" || /^[a-zA-Z]$/.test(event.key)) {
         event.preventDefault();
         handleKey(event.key, true);

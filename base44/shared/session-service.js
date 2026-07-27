@@ -19,6 +19,7 @@ import {
 } from "./platform.js";
 import { recordDuelProgress } from "./duel-service.js";
 import { canAccessSession } from "./session-access.js";
+import { claimGuestDaily } from "./session-claim.js";
 export { canAccessSession } from "./session-access.js";
 
 export async function startSession(base44, input = {}) {
@@ -66,6 +67,27 @@ export async function startSession(base44, input = {}) {
   }
   console.log(JSON.stringify({ event: "mode_started", mode, user_id: user?.id || "guest", session_id: session.id }));
   return publicSession(session);
+}
+
+export async function claimGuestDailySession(base44, input = {}) {
+  const sessionId = String(input.sessionId || "");
+  if (!sessionId) throw Object.assign(new Error("Guest session is required"), { status: 400, code: "session_required" });
+
+  const user = await optionalUser(base44);
+  if (!user) throw Object.assign(new Error("Sign in required"), { status: 401, code: "auth_required" });
+
+  const admin = base44.asServiceRole.entities;
+  const currentDailyKey = dailyPuzzle(new Date()).key;
+  const result = await claimGuestDaily({
+    admin,
+    user,
+    sessionId,
+    currentDailyKey,
+    getPlayer: () => getOrCreatePlayer(base44, user),
+    settleWonSession: (session) => settleWin(base44, user, session, `claim:${session.id}`),
+  });
+  console.log(JSON.stringify({ event: "guest_daily_claimed", user_id: user.id, session_id: result.sessionId }));
+  return result;
 }
 
 export async function submitGuess(base44, input = {}) {

@@ -1,4 +1,5 @@
 import { requireUser, getOrCreatePlayer } from "./platform.js";
+import { hydratePlayerIdentities } from "./player-identity.js";
 
 const SEASON_EPOCH = Date.UTC(2026, 0, 1);
 const SEASON_DAYS = 28;
@@ -74,5 +75,8 @@ export async function tournamentStatus(base44) {
       if (member) await admin.LeagueMembership.update(member.id, { cup_qualified: true });
     }
   }
-  return { season, membership, leaderboard: leaderboard.map((entry, index) => ({ ...entry, rank: index + 1 })), brackets };
+  const hydrated = await hydratePlayerIdentities(admin, [membership, ...leaderboard]);
+  const currentMembership = hydrated[0];
+  const currentLeaderboard = hydrated.slice(1).map((entry, index) => ({ ...entry, rank: index + 1 }));
+  return { season, membership: currentMembership, leaderboard: currentLeaderboard, brackets };
 }

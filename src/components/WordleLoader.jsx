@@ -8,7 +8,7 @@ export default function WordleLoader() {
           <span
             key={letter}
             className="wordle-loader-tile"
-            style={{ "--loader-tile-index": index }}
+            style={/** @type {import("react").CSSProperties} */ ({ "--loader-tile-index": index })}
           >
             {letter}
           </span>

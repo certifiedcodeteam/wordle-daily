@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
   CalendarDays, Camera, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
@@ -9,6 +9,8 @@ import {
 import { base44 } from "@/api/base44Client";
 import { worldApi, trackWorld } from "@/api/worldClient";
 import { useAuth } from "@/lib/AuthContext";
+import { shouldIgnoreGlobalKeydown } from "@/lib/dom";
+import { GUEST_DAILY_KEY, saveAuthIntent } from "@/lib/auth-flow";
 import { playInvalid, playKey, playLose, playReveal, playWin } from "@/lib/wordle/audio";
 import {
   GameHud, MODES, ModeDrawer, PlayerDrawer, ProgressionInfoDialog, ResultSheet,
@@ -16,6 +18,7 @@ import {
 } from "@/components/world/WorldChrome";
 import { useGamePreferences } from "@/components/world/useGamePreferences";
 import DeleteAccountDialog from "@/components/wordle/DeleteAccountDialog";
+import WordleLoader from "@/components/WordleLoader";
 import "@/components/world/world.css";
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
@@ -33,9 +36,12 @@ const worldEntities = base44.entities;
 
 export default function WordleWorld() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuth();
   const { preferences, updatePreference, haptic, unlockAudio } = useGamePreferences();
-  const [mode, setMode] = useState("daily");
+  const requestedMode = searchParams.get("mode");
+  const initialMode = isAuthenticated && MODES.some((item) => item.id === requestedMode) ? requestedMode : "daily";
+  const [mode, setMode] = useState(initialMode);
   const [bootstrap, setBootstrap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,6 +65,11 @@ export default function WordleWorld() {
 
   useEffect(() => { load(); }, [load, isAuthenticated]);
   useEffect(() => {
+    if (!isAuthenticated || !MODES.some((item) => item.id === requestedMode)) return;
+    setMode(requestedMode);
+    setSearchParams({}, { replace: true });
+  }, [isAuthenticated, requestedMode, setSearchParams]);
+  useEffect(() => {
     if (!isAuthenticated || !user) return undefined;
     const subscriptions = [];
     try { subscriptions.push(worldEntities.PlayerAccount.subscribe(load)); } catch { /* bootstrap polling remains available */ }
@@ -68,9 +79,14 @@ export default function WordleWorld() {
     return () => subscriptions.forEach((unsubscribe) => unsubscribe?.());
   }, [isAuthenticated, user, load]);
 
+  const requestAuth = (reason, nextMode = "daily") => {
+    saveAuthIntent({ mode: nextMode, reason });
+    navigate("/login");
+  };
+
   const selectMode = (nextMode) => {
     if (!isAuthenticated && nextMode !== "daily") {
-      navigate("/login");
+      requestAuth("unlock", nextMode);
       return;
     }
     setMode(nextMode);
@@ -80,13 +96,13 @@ export default function WordleWorld() {
   };
 
   const openOverlay = (view) => {
-    if (view === "login") { navigate("/login"); return; }
+    if (view === "login") { requestAuth("save"); return; }
     if (view === "modes") { setActiveOverlay("modes"); return; }
     setDrawerView(view);
     setActiveOverlay("player");
   };
 
-  if (loading && !bootstrap) return <WorldLoading />;
+  if (loading && !bootstrap) return <WordleLoader />;
 
   const unclaimedRewardCount = isAuthenticated
     ? (bootstrap?.quests || []).filter((quest) => quest.progress >= quest.target && !quest.claimed).length
@@ -95,7 +111,7 @@ export default function WordleWorld() {
   const panel = drawerView === "settings"
     ? <SettingsPanel preferences={preferences} onChange={updatePreference} />
     : !isAuthenticated
-      ? <SignedOutPanel onLogin={() => navigate("/login")} />
+      ? <SignedOutPanel onLogin={() => requestAuth("save")} />
       : drawerView === "shop"
         ? <ShopPanel data={bootstrap} onRefresh={load} onMissions={() => setDrawerView("missions")} />
         : drawerView === "profile"
@@ -107,7 +123,7 @@ export default function WordleWorld() {
     onAccountChange: load,
     onHudChange: setHudDetail,
     onOpenPanel: openOverlay,
-    onSaveProgress: () => navigate("/login"),
+    onSaveProgress: () => requestAuth("save"),
     currentStreak: bootstrap?.account?.current_streak || 0,
     preferences,
     haptic,
@@ -178,7 +194,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     setResult(null);
     setResultOpen(false);
     try {
-      const guestKey = "wordle-world-guest-daily";
+      const guestKey = GUEST_DAILY_KEY;
       const savedGuest = !authenticated && mode === "daily" ? JSON.parse(window.localStorage.getItem(guestKey) || "null") : null;
       const today = new Date().toISOString().slice(0, 10);
       let data;
@@ -325,7 +341,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
 
   useEffect(() => {
     const listener = (event) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || shouldIgnoreGlobalKeydown(event)) return;
       if (event.key === "Enter" || event.key === "Backspace" || /^[a-z]$/i.test(event.key)) {
         event.preventDefault();
         onKey(event.key);
@@ -465,9 +481,11 @@ function LeagueMode({ onHudChange }) {
   useEffect(() => {
     let active = true;
     worldApi.tournamentStatus().then((result) => active && setData(result)).catch((next) => active && setError(next.message));
-    let unsubscribe;
-    try { unsubscribe = worldEntities.LeaderboardEntry.subscribe(() => worldApi.tournamentStatus().then((result) => active && setData(result))); } catch { /* initial load remains */ }
-    return () => { active = false; unsubscribe?.(); };
+    const refresh = () => worldApi.tournamentStatus().then((result) => active && setData(result));
+    const subscriptions = [];
+    try { subscriptions.push(worldEntities.LeaderboardEntry.subscribe(refresh)); } catch { /* initial load remains */ }
+    try { subscriptions.push(worldEntities.PlayerProfile.subscribe(refresh)); } catch { /* leaderboard updates remain available */ }
+    return () => { active = false; subscriptions.forEach((unsubscribe) => unsubscribe?.()); };
   }, []);
   useEffect(() => { onHudChange(data ? `${capitalize(data.membership.division)} - Rank ${data.membership.rank || "-"}` : "Loading standings"); }, [data, onHudChange]);
   if (!data) return <section className="league-workspace">{error ? <InlineError message={error} /> : <ArenaLoader />}</section>;
@@ -479,7 +497,7 @@ function LeagueMode({ onHudChange }) {
   return <section className="league-workspace">
     <div className="arena-heading league-heading"><div><span>Season League</span><h1>{data.season.name}</h1><small>{capitalize(data.membership.division)} division - Cohort {data.membership.cohort}</small><button className="league-season-guide" onClick={() => setSeasonInfoOpen(true)} aria-label={`Season length and rewards. ${seasonDays} day season`}><CalendarDays /><strong>{seasonDays}-day season</strong><Info /></button></div><div className="league-points"><strong>{data.membership.league_points}</strong><span>points</span></div></div>
     <div className="leaderboard" role="table" aria-label="Season leaderboard">
-      {data.leaderboard.map((entry) => <div className={entry.user_id === data.membership.user_id ? "is-me" : ""} role="row" key={entry.id}><span>{entry.rank}</span><strong>{entry.handle}</strong><span>{entry.points}</span></div>)}
+      {data.leaderboard.map((entry) => <div className={entry.user_id === data.membership.user_id ? "is-me" : ""} role="row" key={entry.id}><span>{entry.rank}</span><div className="leaderboard-player"><span className="leaderboard-avatar"><CircleUserRound />{entry.avatar_url && <img src={entry.avatar_url} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}</span><strong>{entry.handle}</strong></div><span>{entry.points}</span></div>)}
       {!data.leaderboard.length && <div className="empty-row">No ranks yet. Win a match to enter.</div>}
     </div>
     <div className={`cup-strip ${data.membership.cup_qualified ? "is-qualified" : ""}`}><Crown /><div><strong>{data.membership.cup_qualified ? "Cup qualified" : "Season Cup"}</strong><span>{data.brackets.length ? `${data.brackets.length} bracket matches` : "Top eight qualify"}</span></div></div>
@@ -652,7 +670,6 @@ function SignedOutPanel({ onLogin }) { return <div className="signed-out-panel">
 function EmptyPanel({ icon: Icon, title, text }) { return <div className="empty-panel"><Icon /><strong>{title}</strong><span>{text}</span></div>; }
 function InlineError({ message, onRetry = null }) { return <div className="inline-error" role="alert"><span>{message}</span>{onRetry && <button onClick={onRetry}><RefreshCw />Retry</button>}</div>; }
 function ArenaLoader() { return <div className="arena-loader" role="status" aria-label="Loading arena"><span /><span /><span /><span /><span /></div>; }
-function WorldLoading() { return <div className="world-loading"><span className="world-brand-mark"><i /><i /><i /><i /></span><Loader2 /></div>; }
 function resultFrom(session, attempts, rewards) { return { status: session.status, solved: session.solved, answer: session.answer, attempts, rewards: rewards || null, extraChanceAvailable: session.extraChanceAvailable }; }
 function phaseLabel(phase) { return ({ loading: "Loading arena", input: "Your move", submitting: "Checking word", revealing: "Reading tiles", won: "Victory", lost: "Round complete", transitioning: "Next round" })[phase] || phase; }
 function formatDuration(ms) { const seconds = Math.ceil(ms / 1000); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`; }

@@ -17,6 +17,7 @@ export const worldApi = {
   bootstrap: () => invoke("game/bootstrap"),
   start: (mode, hardMode = false) => invoke("game/start", { mode, hardMode }),
   status: (sessionId) => invoke("game/status", { sessionId }),
+  claimGuestSession: (sessionId) => invoke("game/claim-guest", { sessionId }),
   guess: (sessionId, guess, expectedVersion) => invoke("game/guess", { sessionId, guess, expectedVersion, requestId: crypto.randomUUID() }),
   buyExtraGuess: (sessionId) => invoke("game/buy-extra-guess", { sessionId, requestId: crypto.randomUUID() }),
   purchase: (itemId) => invoke("economy/purchase", { itemId, requestId: crypto.randomUUID() }),

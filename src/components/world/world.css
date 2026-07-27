@@ -962,6 +962,11 @@ html.wordle-dark .profile-update-message.is-error { color: #ff9485; }
 .game-first .leaderboard > div:last-child { border-bottom: 0; }
 .game-first .leaderboard > div.is-me { border-left: 4px solid var(--arena-orange); background: color-mix(in srgb, var(--arena-orange) 10%, var(--arena-panel)); }
 .game-first .leaderboard > div span:last-child { font-variant-numeric: tabular-nums; font-weight: 850; }
+.game-first .leaderboard-player { min-width: 0; display: flex; align-items: center; gap: 9px; }
+.game-first .leaderboard-player strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-first .leaderboard-avatar { position: relative; width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--arena-line); border-radius: 5px; color: var(--arena-muted); background: var(--arena-paper); }
+.game-first .leaderboard-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.game-first .leaderboard-avatar svg { width: 18px; height: 18px; }
 .game-first .leaderboard .empty-row { display: block; padding: 34px; color: var(--arena-muted); text-align: center; }
 .game-first .cup-strip { display: flex; align-items: center; gap: 12px; border: 1px solid var(--arena-line); border-radius: 6px; padding: 14px; background: var(--arena-panel); }
 .game-first .cup-strip.is-qualified { border-color: var(--arena-gold); background: color-mix(in srgb, var(--arena-gold) 11%, var(--arena-panel)); }

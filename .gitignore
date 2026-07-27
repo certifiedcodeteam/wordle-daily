@@ -29,4 +29,5 @@ dist-ssr
 
 .env
 .vite
+.playwright-cli/
 base44/.app.jsonc
