@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Admin from './pages/Admin';
 import WordleLoader from './components/WordleLoader';
 import { legacyWorldDestination, parseWorldPath, worldTransitionKey } from '@/lib/world-routes';
 
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
         <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+        <Route path="/admin" element={<PageTransition><Admin /></PageTransition>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </AnimatePresence>

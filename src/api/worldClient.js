@@ -44,6 +44,7 @@ export const worldApi = {
   tournamentStatus: () => invoke("tournament/status"),
   checkIn: (bracketId) => invoke("tournament/check-in", { bracketId }),
   importLegacy: (payload) => invoke("legacy/import", { payload }),
+  resetDemo: () => invoke("admin/reset-demo", { confirmation: "clear-and-seed-demo" }),
 };
 
 export function trackWorld(eventName, properties = {}) {

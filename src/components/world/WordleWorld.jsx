@@ -291,15 +291,18 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
 
   useEffect(() => { start(); }, [start]);
   useEffect(() => {
-    const puzzleNumber = session?.puzzleNumber;
     const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    if (mode !== "daily" || !isLocalhost || !Number.isInteger(puzzleNumber)) return;
-    const answer = ANSWERS[((puzzleNumber - 1) % ANSWERS.length + ANSWERS.length) % ANSWERS.length];
-    const logKey = `${puzzleNumber}:${answer}`;
+    if (!isLocalhost || !session) return;
+    const puzzleNumber = session.puzzleNumber;
+    const answer = mode === "daily" && Number.isInteger(puzzleNumber)
+      ? ANSWERS[((puzzleNumber - 1) % ANSWERS.length + ANSWERS.length) % ANSWERS.length]
+      : session.answer;
+    if (!answer) return;
+    const logKey = `${session.sessionId}:${session.roundNumber || 1}:${session.roundComplete ? "round" : session.status}:${answer}`;
     if (loggedAnswerRef.current === logKey) return;
     loggedAnswerRef.current = logKey;
-    console.log(`[Wordle World] Daily answer: ${answer.toUpperCase()}`);
-  }, [mode, session?.puzzleNumber]);
+    console.log(`[Wordle World] ${modeInfo.title} answer: ${answer.toUpperCase()}`);
+  }, [mode, modeInfo.title, session]);
   useEffect(() => {
     if (!session?.deadline || session.status !== "playing") return undefined;
     const timer = window.setInterval(() => setClock(Date.now()), 250);
@@ -675,8 +678,8 @@ function DuelMode({ onHudChange, authenticated, onAccountChange, onOpenPanel, on
   return <section className="duel-workspace">
     <div className="arena-heading"><div><span>Versus</span><h1>Ranked Duel</h1></div><Swords /></div>
     {match?.status === "waiting" ? <div className="matchmaking-state"><div className="matchmaking-radar"><Swords /></div><strong>Searching for rival</strong><span>Finding an available opponent. The match starts automatically.</span><button className="secondary-world-command" onClick={() => refresh(match.id)}><RefreshCw />Refresh</button></div> : <div className="duel-actions">
-      <button className="duel-action" disabled={busy} onClick={() => action(worldApi.queueDuel)}><Gauge /><strong>Find rival</strong><span>Enter ranked matchmaking</span><ChevronRight /></button>
-      <button className="duel-action" disabled={busy} onClick={() => action(worldApi.createPrivateDuel)}><Swords /><strong>Create private duel</strong><span>Share a six-letter code</span><ChevronRight /></button>
+      <button type="button" className="duel-action" disabled={busy} onClick={() => action(worldApi.queueDuel)}><Gauge /><strong>Find rival</strong><span>Enter ranked matchmaking</span><ChevronRight /></button>
+      <button type="button" className="duel-action" disabled={busy} onClick={() => action(worldApi.createPrivateDuel)}><Swords /><strong>Create private duel</strong><span>Share a six-letter code</span><ChevronRight /></button>
       <div className="invite-entry"><input value={invite} onChange={(event) => setInvite(event.target.value.toUpperCase().slice(0, 6))} placeholder="INVITE" aria-label="Invite code" /><button disabled={busy || invite.length !== 6} onClick={() => action(() => worldApi.joinPrivateDuel(invite))}>Join</button></div>
     </div>}
     {message && <p className="workspace-message" role="status">{message}</p>}

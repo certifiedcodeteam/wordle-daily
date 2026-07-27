@@ -1,10 +1,13 @@
 export function nextDuelSync(snapshot, consumed = new Set()) {
-  const candidates = [
-    snapshot?.nextSyncAt,
-    snapshot?.fallbackAt,
-    snapshot?.countdownEndsAt,
-    snapshot?.match?.deadline,
-  ]
+  const status = snapshot?.match?.status;
+  const values = status === "waiting"
+    ? [snapshot?.fallbackAt]
+    : status === "countdown"
+      ? [snapshot?.countdownEndsAt]
+      : status === "active"
+        ? [snapshot?.nextSyncAt, snapshot?.match?.deadline]
+        : [];
+  const candidates = values
     .filter(Boolean)
     .map((value) => ({ key: String(value), at: new Date(value).getTime() }))
     .filter((candidate) => Number.isFinite(candidate.at) && !consumed.has(candidate.key))

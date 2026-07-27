@@ -149,17 +149,19 @@ export function DuelResultSheet({ snapshot, onAgain, onClose }) {
   const won = self?.status === "won" && snapshot.match.winner_user_id === self.user_id;
   const draw = !snapshot.match.winner_user_id;
   const title = draw ? "Dead heat" : won ? "Battle won" : "Rival wins";
+  const answer = snapshot.answer?.toUpperCase();
   return <Dialog open onOpenChange={(next) => !next && onClose?.()}>
     <DialogContent className={`result-sheet duel-result-sheet ${won ? "is-win" : "is-loss"}`}>
       <div className="result-emblem" aria-hidden="true">{won ? <Crown /> : <Swords />}</div>
       <DialogTitle>{title}</DialogTitle>
-      <DialogDescription>{draw ? "Neither player broke the tie." : won ? `${self.handle} takes the battle.` : `${opponent?.handle || "Your rival"} takes the battle.`}</DialogDescription>
+      <DialogDescription>{`${draw ? "Neither player broke the tie." : won ? `${self.handle} takes the battle.` : `${opponent?.handle || "Your rival"} takes the battle.`}${answer ? ` The word was ${answer}.` : ""}`}</DialogDescription>
       <div className="duel-result-scoreline" aria-label="Battle result">
         <ResultCombatant participant={self} label="You" winner={won} />
         <strong>VS</strong>
         <ResultCombatant participant={opponent} label="Rival" winner={!draw && !won} />
       </div>
       <div className="result-scoreline">
+        <ResultStat label="Answer" value={answer || "-"} />
         <ResultStat label="Rating" value={Math.abs(self?.rating_change || 0)} prefix={(self?.rating_change || 0) >= 0 ? "+" : "-"} />
         <ResultStat label="XP" value={self?.reward_xp || 0} prefix="+" />
         <ResultStat label="Tokens" value={self?.reward_tokens || 0} prefix="+" />

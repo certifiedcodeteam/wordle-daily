@@ -294,11 +294,27 @@ async function snapshotFor(base44, user, initialMatch) {
   const self = participants.find((participant) => participant.user_id === user.id || participant.departed_user_id === user.id) || null;
   const opponent = participants.find((participant) => participant.id !== self?.id) || null;
   const sessionId = self?.controller === "bot" ? "" : user.id === match.player_one_id ? match.session_one_id : match.session_two_id;
+  let answer = "";
+  if (match.status === "complete") {
+    const answerSessionId = sessionId || match.session_one_id || match.session_two_id;
+    if (answerSessionId) {
+      const secrets = await admin.PuzzleSecret.filter({ session_id: answerSessionId, round_number: 1 }, "-created_date", 1);
+      answer = secrets[0]?.answer || "";
+    }
+  }
+  const nextSyncAt = match.status === "waiting"
+    ? match.fallback_at || new Date(fallbackTime(match)).toISOString()
+    : match.status === "countdown"
+      ? match.countdown_ends_at || ""
+      : match.status === "active"
+        ? opponent?.next_update_at || match.deadline || ""
+        : "";
   return {
     match, participants, self, opponent, sessionId: sessionId || "", serverNow: new Date().toISOString(),
     fallbackAt: match.fallback_at || (match.status === "waiting" ? new Date(fallbackTime(match)).toISOString() : ""),
     countdownEndsAt: match.countdown_ends_at || "",
-    nextSyncAt: opponent?.next_update_at || match.countdown_ends_at || match.fallback_at || "",
+    nextSyncAt,
+    ...(answer ? { answer } : {}),
   };
 }
 
