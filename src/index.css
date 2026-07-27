@@ -671,7 +671,7 @@ button {
 
 .wordle-sheet {
   width: min(370px, 88vw);
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
   padding-bottom: env(safe-area-inset-bottom);
   border-color: var(--wd-border);
   color: var(--wd-text);
@@ -725,6 +725,90 @@ button {
 @keyframes tile-bounce {
   0%, 20%, 100% { transform: translateY(0); }
   50% { transform: translateY(-14px); }
+}
+
+.wordle-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  color: var(--wd-text);
+  background: var(--wd-bg);
+}
+
+.wordle-loader-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 42px);
+  gap: 6px;
+  perspective: 500px;
+}
+
+.wordle-loader-tile {
+  width: 42px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--wd-border);
+  color: var(--wd-text);
+  background: var(--wd-bg);
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1;
+  transform-style: preserve-3d;
+  animation: loader-tile-flip 2.1s ease-in-out infinite;
+  animation-delay: calc(var(--loader-tile-index) * 120ms);
+}
+
+.wordle-loader-tile:nth-child(1),
+.wordle-loader-tile:nth-child(4) { --loader-tile-color: var(--wd-correct); }
+.wordle-loader-tile:nth-child(2) { --loader-tile-color: var(--wd-present); }
+.wordle-loader-tile:nth-child(3),
+.wordle-loader-tile:nth-child(5) { --loader-tile-color: var(--wd-absent); }
+
+@keyframes loader-tile-flip {
+  0%, 12% {
+    border-color: var(--wd-border);
+    color: var(--wd-text);
+    background: var(--wd-bg);
+    transform: rotateX(0);
+  }
+  24% {
+    border-color: var(--wd-border);
+    color: var(--wd-text);
+    background: var(--wd-bg);
+    transform: rotateX(90deg);
+  }
+  25% {
+    border-color: var(--loader-tile-color);
+    color: #f8f8f4;
+    background: var(--loader-tile-color);
+    transform: rotateX(90deg);
+  }
+  37%, 62% {
+    border-color: var(--loader-tile-color);
+    color: #f8f8f4;
+    background: var(--loader-tile-color);
+    transform: rotateX(0);
+  }
+  74% {
+    border-color: var(--loader-tile-color);
+    color: #f8f8f4;
+    background: var(--loader-tile-color);
+    transform: rotateX(90deg);
+  }
+  75% {
+    border-color: var(--wd-border);
+    color: var(--wd-text);
+    background: var(--wd-bg);
+    transform: rotateX(90deg);
+  }
+  87%, 100% {
+    border-color: var(--wd-border);
+    color: var(--wd-text);
+    background: var(--wd-bg);
+    transform: rotateX(0);
+  }
 }
 
 @media (max-width: 640px) {
