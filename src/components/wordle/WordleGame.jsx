@@ -286,6 +286,12 @@ export default function WordleGame() {
         showToast("Could not delete account data");
         return;
       }
+      try {
+        // Delete the auth profile as well, where supported by the platform.
+        await base44.entities.User.delete(user.id);
+      } catch {
+        // Self-deletion of the auth profile is not supported; game data is already removed.
+      }
     }
     showToast("Account data deleted");
     window.setTimeout(() => logout(true), 1200);

@@ -35,7 +35,7 @@ export default function DeleteAccountDialog({ onConfirm }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove your synced game progress and statistics from the cloud and sign you out.
+              This will permanently delete your synced game progress, statistics, and your login account, then sign you out.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,9 +1,18 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-[#f7f7f4] px-4 py-10">
+    <div className="relative min-h-[100dvh] flex items-center justify-center bg-[#f7f7f4] px-4 py-10">
+      <Link
+        to="/"
+        aria-label="Back to game"
+        className="absolute left-3 z-10 inline-flex items-center justify-center w-11 h-11 rounded-md text-[#20201e] hover:bg-black/5"
+        style={{ top: "calc(12px + env(safe-area-inset-top, 0px))" }}
+      >
+        <ArrowLeft className="w-6 h-6" aria-hidden="true" />
+      </Link>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-7 text-xl font-extrabold text-[#20201e] hover:opacity-75">
