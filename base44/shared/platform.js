@@ -30,7 +30,7 @@ export async function getOrCreatePlayer(base44, user) {
   });
   const profile = profiles[0] || await admin.PlayerProfile.create({
     user_id: user.id, handle: `${base}${user.id.slice(-4)}`, avatar_seed: user.id,
-    level: levelForXp(account.xp_total), peak_division: "bronze", games_played: 0, games_won: 0, achievements: [],
+    rename_count: 0, level: levelForXp(account.xp_total), peak_division: "bronze", games_played: 0, games_won: 0, achievements: [],
   });
   return { account, profile };
 }

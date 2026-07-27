@@ -145,6 +145,8 @@ export interface PlayerProfile {
   user_id: string;
   handle: string;
   avatar_seed: string;
+  avatar_url?: string;
+  rename_count?: number;
   level: number;
   equipped_cosmetic?: string;
   peak_division: "bronze" | "silver" | "gold" | "platinum" | "diamond";
@@ -226,22 +228,23 @@ declare module '@base44/sdk' {
   }
   
   interface FunctionNameRegistry {
-    "duel/create-private": true;
-    "duel/queue": true;
-    "duel/join-private": true;
-    "duel/status": true;
-    "economy/purchase": true;
     "game/bootstrap": true;
+    "economy/purchase": true;
     "game/buy-extra-guess": true;
-    "duel/forfeit": true;
     "game/guess": true;
-    "game/start": true;
     "game/status": true;
-    "quests/claim": true;
-    "quests/reroll": true;
+    "duel/create-private": true;
+    "game/start": true;
+    "duel/join-private": true;
+    "duel/forfeit": true;
+    "duel/queue": true;
+    "duel/status": true;
     "legacy/import": true;
+    "profile/update": true;
     "tournament/check-in": true;
+    "quests/claim": true;
     "tournament/enroll": true;
+    "quests/reroll": true;
     "tournament/status": true;
   }
 }

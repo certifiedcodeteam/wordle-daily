@@ -20,6 +20,16 @@ export const worldApi = {
   guess: (sessionId, guess, expectedVersion) => invoke("game/guess", { sessionId, guess, expectedVersion, requestId: crypto.randomUUID() }),
   buyExtraGuess: (sessionId) => invoke("game/buy-extra-guess", { sessionId, requestId: crypto.randomUUID() }),
   purchase: (itemId) => invoke("economy/purchase", { itemId, requestId: crypto.randomUUID() }),
+  updateProfile: (changes) => invoke("profile/update", changes),
+  uploadAvatar: async (file) => {
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      if (!result?.file_url) throw new Error("Upload did not return a file URL");
+      return result.file_url;
+    } catch {
+      throw new Error("Avatar upload failed. Try another image.");
+    }
+  },
   claimQuest: (questId) => invoke("quests/claim", { questId, requestId: crypto.randomUUID() }),
   rerollQuest: (questId) => invoke("quests/reroll", { questId, requestId: crypto.randomUUID() }),
   queueDuel: () => invoke("duel/queue"),

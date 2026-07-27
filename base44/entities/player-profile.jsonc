@@ -5,6 +5,8 @@
     "user_id": { "type": "string" },
     "handle": { "type": "string" },
     "avatar_seed": { "type": "string" },
+    "avatar_url": { "type": "string" },
+    "rename_count": { "type": "integer" },
     "level": { "type": "integer" },
     "equipped_cosmetic": { "type": "string" },
     "peak_division": { "type": "string", "enum": ["bronze", "silver", "gold", "platinum", "diamond"] },
