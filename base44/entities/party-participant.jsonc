@@ -1,0 +1,35 @@
+{
+  "name": "PartyParticipant",
+  "type": "object",
+  "properties": {
+    "room_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "viewer_user_ids": { "type": "array", "items": { "type": "string" } },
+    "handle": { "type": "string" },
+    "avatar_seed": { "type": "string" },
+    "controller": { "type": "string", "enum": ["human", "bot"] },
+    "ready": { "type": "boolean" },
+    "status": { "type": "string", "enum": ["lobby", "playing", "solved", "finished", "forfeit"] },
+    "live_state": { "type": "string", "enum": ["lobby", "ready", "thinking", "typing", "checking", "solved", "finished", "reconnecting"] },
+    "current_session_id": { "type": "string" },
+    "progress_rows": { "type": "array", "items": { "type": "string" } },
+    "round_score": { "type": "integer" },
+    "total_score": { "type": "integer" },
+    "rounds_solved": { "type": "integer" },
+    "round_wins": { "type": "integer" },
+    "guesses_used": { "type": "integer" },
+    "total_guesses": { "type": "integer" },
+    "elapsed_ms": { "type": "integer" },
+    "total_elapsed_ms": { "type": "integer" },
+    "rank": { "type": "integer" },
+    "round_results": { "type": "array", "items": { "type": "object" } },
+    "last_seen_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["room_id", "user_id", "viewer_user_ids", "handle", "controller", "ready", "status", "live_state", "round_score", "total_score", "rounds_solved", "round_wins", "guesses_used", "total_guesses", "elapsed_ms", "total_elapsed_ms", "rank", "last_seen_at"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "$or": [{ "data.viewer_user_ids": { "$all": ["{{user.id}}"] } }, { "user_condition": { "role": "admin" } }] },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

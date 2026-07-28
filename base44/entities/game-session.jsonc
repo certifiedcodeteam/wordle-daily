@@ -4,8 +4,9 @@
   "properties": {
     "owner_user_id": { "type": "string" },
     "match_id": { "type": "string" },
+    "party_room_id": { "type": "string" },
     "guest": { "type": "boolean" },
-    "mode": { "type": "string", "enum": ["daily", "endless", "rush", "duel"] },
+    "mode": { "type": "string", "enum": ["daily", "endless", "rush", "duel", "party"] },
     "puzzle_key": { "type": "string" },
     "puzzle_number": { "type": "integer" },
     "status": { "type": "string", "enum": ["playing", "won", "lost", "expired", "forfeit"] },

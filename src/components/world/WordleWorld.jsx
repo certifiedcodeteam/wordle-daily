@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import {
@@ -29,6 +29,7 @@ import "@/components/world/world.css";
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 const REVEAL_MS = 980;
+const PartyMode = lazy(() => import("@/components/world/PartyMode"));
 export const SHOP = [
   { id: "streak-shield", name: "Streak shield", price: 50, type: "Utility", icon: ShieldCheck, accent: "#4f9564", summary: "Protect one break in your Daily streak.", detail: "Used automatically when you return after missing exactly one day. Your streak continues and one shield is consumed. You can carry up to two." },
   { id: "keycaps-forest", name: "Forest keys", price: 100, type: "Cosmetic", icon: TreePine, accent: "#3f8356", summary: "A forest-green keyboard collectible.", detail: "Permanently unlocks the Forest Keys cosmetic in your inventory." },
@@ -103,8 +104,9 @@ export default function WordleWorld() {
 
   useEffect(() => {
     if (isAuthenticated || !route?.requiresAuth) return;
-    requestAuth(route.kind === "play" ? "unlock" : "account", route.kind === "play" ? route.mode : "daily", route.path, true);
-  }, [isAuthenticated, requestAuth, route?.kind, route?.mode, route?.path, route?.requiresAuth]);
+    const destination = route.mode === "party" ? `${route.path}${location.search}` : route.path;
+    requestAuth(route.kind === "play" ? "unlock" : "account", route.kind === "play" ? route.mode : "daily", destination, true);
+  }, [isAuthenticated, location.search, requestAuth, route?.kind, route?.mode, route?.path, route?.requiresAuth]);
   useEffect(() => {
     if (!isAuthenticated && route?.requiresAuth) return;
     load();
@@ -214,6 +216,7 @@ export default function WordleWorld() {
         {mode === "endless" && <GameMode key="endless" mode="endless" {...sharedGameProps} />}
         {mode === "rush" && <GameMode key="rush" mode="rush" {...sharedGameProps} />}
         {mode === "duel" && <DuelMode {...sharedGameProps} />}
+        {mode === "party" && <Suspense fallback={<WordleLoader />}><PartyMode GameComponent={GameMode} gameProps={sharedGameProps} locationSearch={location.search} onHudChange={setHudDetail} /></Suspense>}
         {mode === "league" && <LeagueMode onHudChange={setHudDetail} />}
       </main>
       <ModeDrawer open={modeDrawerOpen} mode={mode} onClose={() => setModeDrawerOpen(false)} onSelect={selectMode} />
@@ -297,7 +300,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   useEffect(() => { start(); }, [start]);
   useEffect(() => {
     const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    if (!isLocalhost || !session) return;
+    if (!isLocalhost || !session || mode === "party") return;
     const puzzleNumber = session.puzzleNumber;
     const answer = mode === "daily" && Number.isInteger(puzzleNumber)
       ? ANSWERS[((puzzleNumber - 1) % ANSWERS.length + ANSWERS.length) % ANSWERS.length]
@@ -339,7 +342,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
   }, [mode, onHudChange, phase, remaining, session]);
 
   useEffect(() => {
-    if (mode !== "duel") return;
+    if (!["duel", "party"].includes(mode)) return;
     const activity = phase === "submitting" || phase === "revealing" ? "checking"
       : ["won", "lost"].includes(phase) ? "finished"
         : draft ? "typing" : "thinking";
@@ -372,7 +375,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
     setSession(response);
     if (response.status === "playing") {
       setPhase("input");
-      if (mode === "duel") onBattleRefresh();
+      if (["duel", "party"].includes(mode)) onBattleRefresh();
       return;
     }
 
@@ -388,7 +391,7 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       playLose();
       haptic([35, 55, 35]);
     }
-    if (mode === "duel") later(onBattleRefresh, 220);
+    if (["duel", "party"].includes(mode)) later(onBattleRefresh, 220);
     else later(() => setResultOpen(true), 220);
   }, [haptic, later, mode, onBattleRefresh]);
 
@@ -492,9 +495,9 @@ function GameMode({ mode, authenticated, onAccountChange, onHudChange, onOpenPan
       <div className={`game-status ${message ? "has-message" : ""}`} role="status" aria-live="polite">
         {(phase === "submitting" || phase === "loading" || duelFinalizing) && <Loader2 className="world-inline-spinner" />}
         <span>{message || (duelFinalizing ? "Finalizing battle" : reward ? `+${reward.xp || 0} XP - +${reward.tokens || 0} tokens` : phase === "input" ? "Build a five-letter word" : phaseLabel(phase))}</span>
-        {mode !== "duel" && !resultOpen && !detailWord && result?.answer && !result.extraChanceAvailable && <button className="game-status-word-details" onClick={() => setDetailWord(result.answer)}><BookOpenText />Word details</button>}
+        {!["duel", "party"].includes(mode) && !resultOpen && !detailWord && result?.answer && !result.extraChanceAvailable && <button className="game-status-word-details" onClick={() => setDetailWord(result.answer)}><BookOpenText />Word details</button>}
       </div>
-      {mode !== "duel" && <ResultSheet open={resultOpen && !detailWord} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" onWordDetails={setDetailWord} />}
+      {!["duel", "party"].includes(mode) && <ResultSheet open={resultOpen && !detailWord} result={result} streak={currentStreak} onClose={() => setResultOpen(false)} onPrimary={primaryAction} primaryLabel={primaryLabel} onSecondary={() => setResultOpen(false)} secondaryLabel="Back to board" onWordDetails={setDetailWord} />}
       {mode === "duel" && <DuelResultSheet snapshot={battle} open={!detailWord} onAgain={onDuelAgain} onClose={NOOP} onWordDetails={setDetailWord} />}
       <WordDetailsDialog word={detailWord} sessionId={session?.sessionId} open={Boolean(detailWord)} onClose={() => setDetailWord("")} />
     </section>

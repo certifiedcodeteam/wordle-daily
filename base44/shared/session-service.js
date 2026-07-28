@@ -18,6 +18,7 @@ import {
   utcWeekKey,
 } from "./platform.js";
 import { recordDuelProgress } from "./duel-service.js";
+import { recordPartyProgress } from "./party-service.js";
 import { canAccessSession } from "./session-access.js";
 import { claimGuestDaily } from "./session-claim.js";
 export { canAccessSession } from "./session-access.js";
@@ -139,7 +140,11 @@ export async function submitGuess(base44, input = {}) {
     const finished = solved || failedRound;
     patch = { ...patch, status: solved ? "won" : failedRound ? "lost" : "playing", ...(finished ? { completed_at: now.toISOString() } : {}) };
     const extraChanceAvailable = Boolean(user && session.mode === "daily" && failedRound && nextCount === BASE_GUESSES && session.max_guesses === BASE_GUESSES);
-    result = responseFor({ ...session, ...patch }, evaluation, { solved, extraChanceAvailable, answer: finished && !extraChanceAvailable ? answer : undefined });
+    result = responseFor({ ...session, ...patch }, evaluation, {
+      solved,
+      extraChanceAvailable,
+      answer: finished && !extraChanceAvailable && session.mode !== "party" ? answer : undefined,
+    });
   }
   patch.last_request_id = requestId;
   patch.last_request_result = result;
@@ -147,6 +152,7 @@ export async function submitGuess(base44, input = {}) {
   if (!changed.updated) throw Object.assign(new Error("Game changed on another device"), { status: 409, code: "version_conflict" });
   await admin.GuessAttempt.create({ session_id: session.id, owner_user_id: session.owner_user_id || "", round_number: session.round_number, sequence: nextCount, word: guess, evaluation, request_id: requestId, submitted_at: now.toISOString() });
   if (session.mode === "duel") await recordDuelProgress(base44, { ...session, ...patch });
+  if (session.mode === "party") await recordPartyProgress(base44, { ...session, ...patch }, evaluation);
   if (user && !session.guest && solved && ["daily", "endless"].includes(session.mode)) result.rewards = await settleWin(base44, user, { ...session, ...patch }, requestId);
   console.log(JSON.stringify({ event: "guess_submitted", mode: session.mode, solved, session_id: session.id }));
   return result;
@@ -267,7 +273,7 @@ export async function sessionStatus(base44, input = {}) {
   }
   const attempts = await admin.GuessAttempt.filter({ session_id: session.id, round_number: session.round_number }, "sequence", 10);
   const extraChanceAvailable = Boolean(user && session.mode === "daily" && session.status === "lost" && session.guesses_used === BASE_GUESSES && session.max_guesses === BASE_GUESSES);
-  const answer = session.status !== "playing" && !extraChanceAvailable ? await answerFor(admin, session) : undefined;
+  const answer = session.status !== "playing" && !extraChanceAvailable && session.mode !== "party" ? await answerFor(admin, session) : undefined;
   return { ...publicSession(session), attempts: attempts.map(({ word, evaluation, sequence }) => ({ word, evaluation, sequence })), extraChanceAvailable, ...(answer ? { answer } : {}), rewards };
 }
 

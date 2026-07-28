@@ -1,6 +1,6 @@
 {
   "name": "Wordle World",
-  "description": "A server-authoritative daily word game with endless play, rival battles, progression, and seasonal leagues.",
+  "description": "A server-authoritative word arena with realtime party rooms, daily play, rival battles, progression, and seasonal leagues.",
   "visibility": "public",
   "site": {
     "installCommand": "npm install",

@@ -26,6 +26,7 @@ const MODES = [
   { icon: Infinity, label: "Endless" },
   { icon: Timer, label: "Time Rush" },
   { icon: Swords, label: "Duels" },
+  { icon: Users, label: "Party" },
   { icon: Trophy, label: "League" },
 ];
 
@@ -101,10 +102,10 @@ function DailyScene() {
     <div className="promo-artboard scene-daily" data-capture-name="wordle-world-daily">
       <div className="daily-copy">
         <Brand light />
-        <span className="promo-kicker">THE DAILY PUZZLE IS ONLY THE START</span>
-        <h1>One word.<br />A whole world.</h1>
-        <p>Daily puzzles, endless runs, timed challenges, live duels, and seasonal leagues.</p>
-        <div className="daily-mode-line"><Swords /> Race friends <Trophy /> Climb leagues <Flame /> Build streaks</div>
+        <span className="promo-kicker">REALTIME WORD RACES FOR 2–8 PLAYERS</span>
+        <h1>Three words.<br />One room.</h1>
+        <p>Shared rounds, live masked mini-grids, final podiums, and an AI match recap.</p>
+        <div className="daily-mode-line"><Users /> Party rooms <Trophy /> Live placement <Sparkles /> AI recap</div>
       </div>
       <div className="daily-product">
         <GameShell>
@@ -192,11 +193,11 @@ function SocialScene() {
     <div className="promo-artboard promo-social-artboard scene-social" data-capture-name="wordle-world-social">
       <div className="social-copy">
         <Brand light />
-        <span className="promo-kicker">WORDLE, BUILT FOR COMPETITION</span>
-        <h1>One word.<br />A whole world.</h1>
-        <p>Daily puzzles, live duels, endless runs, and seasonal leagues.</p>
+        <span className="promo-kicker">REALTIME WORD RACES FOR 2–8 PLAYERS</span>
+        <h1>Three words.<br />One room.</h1>
+        <p>Live Party Rooms, protected answers, final podiums, and AI match recaps.</p>
         <div className="social-modes">
-          <span><Sparkles />Daily</span><span><Timer />Rush</span><span><Swords />Duels</span><span><Trophy />Leagues</span>
+          <span><Users />Party</span><span><Sparkles />Daily</span><span><Swords />Duels</span><span><Trophy />Leagues</span>
         </div>
       </div>
       <div className="social-board-stack">
@@ -268,10 +269,10 @@ export default function PromoCapture() {
   return (
     <main className="promo-studio">
       <header className="promo-studio-header">
-        <div><span>WORDLE WORLD</span><h1>Capture studio</h1><p>Export ready-made promotional artwork for the Game Jam post and social sharing.</p></div>
+        <div><span>WORDLE WORLD</span><h1>Capture studio</h1><p>Export ready-made promotional artwork for the contest submission and social sharing.</p></div>
         <a href="/">Back to game</a>
       </header>
-      <CaptureCard title="Daily World" description="Best lead image for Discord. The familiar puzzle and full mode range read at a glance." fileName="wordle-world-daily"><DailyScene /></CaptureCard>
+      <CaptureCard title="Party Arena" description="Best lead image for the submission. The realtime premise and full mode range read at a glance." fileName="wordle-world-daily"><DailyScene /></CaptureCard>
       <CaptureCard title="Live Duel" description="Use as a second attachment to highlight competitive multiplayer." fileName="wordle-world-duel"><DuelScene /></CaptureCard>
       <CaptureCard title="Season Journey" description="Use as a third attachment to show progression, leagues, missions, and rewards." fileName="wordle-world-progression"><ProgressionScene /></CaptureCard>
       <CaptureCard title="Social Share Card" description="This exact 1.91:1 composition powers link previews on Discord, X, LinkedIn, and other platforms." fileName="wordle-world-social" height={630}><SocialScene /></CaptureCard>

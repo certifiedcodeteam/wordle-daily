@@ -1,6 +1,6 @@
 # Wordle World
 
-Wordle World is a full-stack, server-authoritative word game built with Base44, React, and Vite. It starts with the familiar daily word puzzle and expands it into endless runs, timed challenges, head-to-head battles, player progression, seasonal leagues, and tournaments.
+Wordle World is a full-stack, server-authoritative word competition built with Base44, React, and Vite. Its centerpiece is a realtime, three-round Party Room for 2–8 players, backed by deterministic demo rivals and an AI match desk. Daily puzzles, endless runs, ranked duels, progression, seasonal leagues, and tournaments remain available around that core.
 
 This repository is intended to be useful as both a playable game and a Base44 template. It demonstrates how to combine a responsive React game interface with protected answers, backend validation, realtime multiplayer state, persistent progression, virtual currency, quests, leaderboards, and account management.
 
@@ -26,6 +26,7 @@ Wordle World uses backend functions, so the destination workspace needs a Base44
 - **Daily Challenge**: one shared puzzle per day with guest play and saved progress.
 - **Endless Run**: continuous word rounds for XP, tokens, and longer sessions.
 - **Time Rush**: solve as many words as possible before the timer expires.
+- **Party Room**: race the same three protected words with 2–8 players, realtime masked mini-grids, live placement, and an AI recap. A one-click demo room adds three deterministic rivals.
 - **Rival Battles**: ranked matchmaking, private invite codes, presence tracking, forfeits, and bot fallback.
 - **Season League**: division standings, league points, seasonal enrollment, and a cup tournament for qualifying players.
 
@@ -50,16 +51,16 @@ Wordle World uses backend functions, so the destination workspace needs a Base44
 
 The browser never receives a puzzle answer before a round is complete. Starting a game, validating a guess, settling rewards, updating a streak, changing a rating, and progressing a tournament all happen in Base44 backend functions.
 
-```text
-React UI
-  |
-  | Base44 SDK function calls
-  v
-Game, duel, economy, quest, and tournament functions
-  |
-  | service-role entity access
-  v
-Base44 entities with row-level security
+```mermaid
+flowchart LR
+  UI["React UI"] -->|authenticated function calls| API["Base44 functions"]
+  UI <-->|room and participant subscriptions| RT["Realtime entities"]
+  API --> PARTY["Party state machine"]
+  API --> GAME["Game authority"]
+  PARTY --> DATA["RLS-protected room data"]
+  GAME --> SECRET["Admin-only PuzzleSecret"]
+  PARTY --> AI["Base44 InvokeLLM"]
+  API --> CORE["Progression, economy, leagues"]
 ```
 
 This separation is the main architectural idea in the template:
@@ -115,6 +116,7 @@ This separation is the main architectural idea in the template:
 | Games | `GameSession`, `GuessAttempt`, `PuzzleSecret` |
 | Players | `PlayerAccount`, `PlayerProfile`, `PlayerInventory`, `AchievementUnlock` |
 | Economy and quests | `WalletTransaction`, `PlayerQuest` |
+| Party rooms | `PartyRoom`, `PartyParticipant`, `PartyBotState`, `PartyRecap` |
 | Battles | `DuelMatch`, `DuelParticipant`, `DuelBotState` |
 | Seasons | `Season`, `LeagueMembership`, `LeaderboardEntry`, `CupBracket` |
 | Compatibility | `WordlePlayerState`, `User` |
@@ -126,6 +128,7 @@ Entity definitions are in [`base44/entities`](base44/entities). Read the `rls` b
 | Group | Responsibilities |
 | --- | --- |
 | `game` | Bootstrap, start, guess, status, guest claims, and extra guesses |
+| `party` | Create, join, ready, start, status, presence, leave, and one-time AI recap |
 | `duel` | Ranked queue, private battles, status, presence, current match, and forfeits |
 | `economy` | Purchases and inventory settlement |
 | `quests` | Claiming and rerolling quests |
@@ -198,6 +201,8 @@ Never commit `.env.local` or credentials.
 | `/play/endless` | Endless Run |
 | `/play/rush` | Time Rush |
 | `/play/duel` | Rival Battles |
+| `/play/party` | Party Room entry, room lobby, live match, and results |
+| `/play/party?room=ABC234` | Validated invite deep link preserved through sign-in |
 | `/play/league` | Season League |
 | `/player/:panel` | Missions, shop, profile, and settings panels |
 | `/login`, `/register` | Authentication flows |
@@ -232,6 +237,13 @@ When changing currency logic, preserve transaction records and idempotent operat
 - Duel endpoints: `base44/functions/duel/`
 - Tournament endpoints: `base44/functions/tournament/`
 
+### Change Party Room behavior
+
+- State transitions, bots, settlement, and recap: `base44/shared/party-service.js`
+- Scoring, ranking, invite codes, and redacted progress masks: `base44/shared/party-engine.js`
+- Room endpoints: `base44/functions/party/`
+- Lazy frontend mode: `src/components/world/PartyMode.jsx`
+
 ### Change the visual identity
 
 - Global tokens and fonts: `src/index.css`
@@ -259,16 +271,16 @@ The frontend checks use ESLint and TypeScript. Backend linting and type checks u
 
 ## Contest Submission Evidence
 
-Wordle World maps the judging criteria to concrete Base44 resources and visible behavior:
+Wordle World maps the judging criteria to concrete Base44 resources and visible behavior.
 
 | Criterion | Evidence |
 | --- | --- |
 | Server-authoritative gameplay | `base44/functions/game/start`, `guess`, `status`; answers remain in admin-only `PuzzleSecret`. |
 | Reliable onboarding and persistence | `base44/shared/provisioning-service.js` leases player, quests, and league setup; `src/lib/auth-flow.js` claims guest progress and has a bounded timeout. |
-| Secure, useful AI | `base44/functions/game/word-details` verifies completed-session ownership, reads the answer server-side, validates structured Base44 AI output, and caches `WordInsight` under admin-only RLS. The UI presents it as post-game learning. |
-| Realtime multiplayer | Duel functions and `DuelMatch`/`DuelParticipant` subscriptions expose reconnecting presence, bot fallback, version conflicts, and idempotent progress. |
+| Secure, useful AI | `party/recap` claims generation once, sends only completed words and verified statistics to `InvokeLLM`, validates a strict schema, caches `PartyRecap`, and falls back deterministically. Word details retain their completed-session ownership check. |
+| Realtime multiplayer | Party functions and `PartyRoom`/`PartyParticipant` subscriptions expose 2–8 player lobbies, masked mini-grids, presence, atomic transitions, deterministic bots, and host transfer. |
 | Economy and competition | Wallet transactions, quests, league memberships, leaderboards, and tournament brackets are server-mutated and operation-key protected. |
-| Quality and accessibility | 50 Node tests cover scoring, concurrency, repair merges, access control, rapid input, routes, and recovery; reduced motion, contrast, sound, haptics, labels, retry states, and responsive grid tracks are implemented in the UI. |
+| Quality and accessibility | Automated tests cover scoring, ranking, redaction, deterministic behavior, repair merges, access control, rapid input, routes, and recovery; reduced motion, contrast, labels, focusable controls, mobile standings, and responsive grid tracks are implemented in the UI. |
 
 ### Final verification run
 
@@ -276,7 +288,7 @@ Before submission, run `npm test`, `npm run lint`, `npm run typecheck`, `npm run
 
 ### Demo script
 
-Record a short, uninterrupted walkthrough: play a guest Daily, register and show the same progress after OTP verification, demonstrate Endless and Rush, complete a bot Duel with reconnecting presence, open League and missions/economy, finish a round and open Word details, then show the backend function/entity/RLS map and the passing verification commands. The App ID for this submission is `6a6602ebe3108d55249f1c2d`; the July 9 commit is Base44-generated scaffolding and substantive contest work follows in the current history.
+Record the 2–3 minute walkthrough in [JUDGING.md](JUDGING.md): sign in, create a Demo room, observe realtime bot progress, finish three rounds, inspect the AI recap, then show the entity RLS and function map. The App ID for this submission is `6a6602ebe3108d55249f1c2d`; the July 9 commit is Base44-generated scaffolding and substantive contest work follows in the current history.
 
 ## Publishing
 

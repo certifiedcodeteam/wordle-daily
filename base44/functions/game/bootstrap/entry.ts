@@ -9,10 +9,14 @@ Deno.serve(async (req) => {
     const daily = dailyPuzzle();
     if (!user) return Response.json({ authenticated: false, daily: { puzzleNumber: daily.number, dayKey: utcDayKey() } });
     const { account, profile } = await getOrCreatePlayer(base44, user);
-    const quests = [...await ensureDailyQuests(base44, user.id), await ensureWeeklyQuest(base44, user.id)];
-    const inventory = await base44.asServiceRole.entities.PlayerInventory.filter({ user_id: user.id }, "-created_date", 100);
-    const activeSessions = await base44.asServiceRole.entities.GameSession.filter({ owner_user_id: user.id, status: "playing" }, "-updated_date", 10);
-    const competition = await ensureSeason(base44, user);
+    const [dailyQuests, weeklyQuest, inventory, activeSessions, competition] = await Promise.all([
+      ensureDailyQuests(base44, user.id),
+      ensureWeeklyQuest(base44, user.id),
+      base44.asServiceRole.entities.PlayerInventory.filter({ user_id: user.id }, "-created_date", 100),
+      base44.asServiceRole.entities.GameSession.filter({ owner_user_id: user.id, status: "playing" }, "-updated_date", 10),
+      ensureSeason(base44, user),
+    ]);
+    const quests = [...dailyQuests, weeklyQuest];
     return Response.json({ authenticated: true, profile, account, quests, inventory, activeSessions, competition, daily: { puzzleNumber: daily.number, dayKey: utcDayKey() } });
   } catch (error) { return handleFunctionError(error); }
 });

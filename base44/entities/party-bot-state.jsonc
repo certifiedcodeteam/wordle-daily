@@ -1,0 +1,19 @@
+{
+  "name": "PartyBotState",
+  "type": "object",
+  "properties": {
+    "room_id": { "type": "string" },
+    "participant_id": { "type": "string" },
+    "round_number": { "type": "integer" },
+    "will_solve": { "type": "boolean" },
+    "target_guesses": { "type": "integer" },
+    "schedule_ms": { "type": "array", "items": { "type": "integer" } }
+  },
+  "required": ["room_id", "participant_id", "round_number", "will_solve", "target_guesses", "schedule_ms"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

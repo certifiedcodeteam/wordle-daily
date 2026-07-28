@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import {
   BookOpenText, CalendarDays, Check, ChevronRight, CircleUserRound, Coins, Crown, Flame,
   Infinity, Info, Lightbulb, Loader2, LogIn, Menu, Moon, RefreshCw, Settings,
-  ShoppingBag, Sparkles, Swords, Timer, Trophy, Volume2, VolumeX, Zap,
+  Radio, ShoppingBag, Sparkles, Swords, Timer, Trophy, Volume2, VolumeX, Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ export const MODES = [
   { id: "endless", label: "Endless", title: "Endless Run", icon: Infinity },
   { id: "rush", label: "Rush", title: "Time Rush", icon: Timer },
   { id: "duel", label: "Duels", title: "Ranked Duel", icon: Swords },
+  { id: "party", label: "Party", title: "Party Room", icon: Radio },
   { id: "league", label: "League", title: "Season League", icon: Trophy },
 ];
 
@@ -307,4 +308,4 @@ export function SeasonLeagueInfoDialog({ season, onClose }) {
 
 function ResultStat({ label, value, prefix = "" }) { return <div><span>{label}</span><strong>{prefix}{value}</strong></div>; }
 function drawerTitle(view) { return ({ missions: "Missions", shop: "Token shop", profile: "Player card", settings: "Game settings" })[view] || "Player"; }
-function modeDescription(mode) { return ({ daily: "One shared puzzle. One shot today.", endless: "Keep solving. Keep earning.", rush: "Three minutes. Maximum score.", duel: "A matched rival is always ready.", league: "Climb your seasonal division." })[mode]; }
+function modeDescription(mode) { return ({ daily: "One shared puzzle. One shot today.", endless: "Keep solving. Keep earning.", rush: "Three minutes. Maximum score.", duel: "A matched rival is always ready.", party: "Three words. Up to eight players.", league: "Climb your seasonal division." })[mode]; }

@@ -47,6 +47,13 @@ test("invalid routes and destinations cannot escape the allowlist", () => {
   assert.equal(buildPlayerPath("unknown"), null);
 });
 
+test("party invite destinations preserve only a validated room code", () => {
+  assert.equal(safeWorldDestination("/play/party?room=abc234"), "/play/party?room=ABC234");
+  assert.equal(safeWorldDestination("/play/party?room=ABCI10"), "/play/party");
+  assert.equal(safeWorldDestination("/play/party?room=ABC234&next=https://example.com"), "/play/party?room=ABC234");
+  assert.equal(safeWorldDestination("//example.com/play/party?room=ABC234"), DEFAULT_WORLD_PATH);
+});
+
 test("trailing slashes normalize to canonical paths", () => {
   assert.equal(parseWorldPath("/play/rush/")?.path, "/play/rush");
   assert.equal(parseWorldPath("/player/settings/")?.path, "/player/settings");

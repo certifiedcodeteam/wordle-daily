@@ -118,8 +118,9 @@ export interface DuelParticipant {
 export interface GameSession {
   owner_user_id?: string;
   match_id?: string;
+  party_room_id?: string;
   guest: boolean;
-  mode: "daily" | "endless" | "rush" | "duel";
+  mode: "daily" | "endless" | "rush" | "duel" | "party";
   puzzle_key: string;
   puzzle_number: number;
   status: "playing" | "won" | "lost" | "expired" | "forfeit";
@@ -173,6 +174,70 @@ export interface LeagueMembership {
   rank: number;
   cup_qualified: boolean;
   applied_operation_keys?: string[];
+}
+
+export interface PartyBotState {
+  room_id: string;
+  participant_id: string;
+  round_number: number;
+  will_solve: boolean;
+  target_guesses: number;
+  schedule_ms: number[];
+}
+
+export interface PartyParticipant {
+  room_id: string;
+  user_id: string;
+  viewer_user_ids: string[];
+  handle: string;
+  avatar_seed?: string;
+  controller: "human" | "bot";
+  ready: boolean;
+  status: "lobby" | "playing" | "solved" | "finished" | "forfeit";
+  live_state: "lobby" | "ready" | "thinking" | "typing" | "checking" | "solved" | "finished" | "reconnecting";
+  current_session_id?: string;
+  progress_rows?: string[];
+  round_score: number;
+  total_score: number;
+  rounds_solved: number;
+  round_wins: number;
+  guesses_used: number;
+  total_guesses: number;
+  elapsed_ms: number;
+  total_elapsed_ms: number;
+  rank: number;
+  round_results?: {}[];
+  last_seen_at: string;
+}
+
+export interface PartyRecap {
+  room_id: string;
+  viewer_user_ids: string[];
+  headline: string;
+  summary: string;
+  mvp: string;
+  coaching_tip: string;
+  generated_at: string;
+  ai_generated: boolean;
+}
+
+export interface PartyRoom {
+  invite_code: string;
+  host_user_id: string;
+  member_user_ids: string[];
+  status: "lobby" | "countdown" | "active" | "between_rounds" | "complete" | "cancelled";
+  demo: boolean;
+  round_number: number;
+  round_count: number;
+  countdown_ends_at?: string;
+  deadline?: string;
+  transition_ends_at?: string;
+  version: number;
+  setup_status: "pending" | "working" | "complete";
+  settlement_status: "pending" | "working" | "complete";
+  recap_status: "pending" | "working" | "complete" | "fallback";
+  last_activity_at: string;
+  completed_words?: string[];
 }
 
 export interface PlayerAccount {
@@ -299,6 +364,10 @@ declare module '@base44/sdk' {
     "GuessAttempt": GuessAttempt;
     "LeaderboardEntry": LeaderboardEntry;
     "LeagueMembership": LeagueMembership;
+    "PartyBotState": PartyBotState;
+    "PartyParticipant": PartyParticipant;
+    "PartyRecap": PartyRecap;
+    "PartyRoom": PartyRoom;
     "PlayerAccount": PlayerAccount;
     "PlayerInventory": PlayerInventory;
     "PlayerProfile": PlayerProfile;
@@ -311,29 +380,37 @@ declare module '@base44/sdk' {
   }
   
   interface FunctionNameRegistry {
-    "account/delete": true;
+    "duel/current": true;
     "economy/purchase": true;
-    "game/claim-guest": true;
+    "duel/create-private": true;
+    "duel/forfeit": true;
+    "account/delete": true;
+    "duel/presence": true;
+    "duel/queue": true;
+    "duel/join-private": true;
+    "duel/status": true;
+    "admin/repair-data": true;
+    "admin/reset-demo": true;
     "game/bootstrap": true;
+    "game/claim-guest": true;
     "game/buy-extra-guess": true;
-    "game/start": true;
     "game/guess": true;
     "game/status": true;
-    "duel/create-private": true;
-    "game/word-details": true;
-    "duel/current": true;
-    "duel/presence": true;
-    "duel/forfeit": true;
-    "duel/join-private": true;
-    "duel/queue": true;
-    "duel/status": true;
-    "admin/reset-demo": true;
-    "admin/repair-data": true;
-    "legacy/import": true;
-    "profile/update": true;
     "quests/claim": true;
-    "tournament/check-in": true;
+    "game/word-details": true;
+    "game/start": true;
     "quests/reroll": true;
+    "profile/update": true;
+    "party/create": true;
+    "legacy/import": true;
+    "party/ready": true;
+    "party/join": true;
+    "party/recap": true;
+    "party/presence": true;
+    "party/leave": true;
+    "party/status": true;
+    "tournament/check-in": true;
+    "party/start": true;
     "tournament/enroll": true;
     "tournament/status": true;
   }

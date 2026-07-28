@@ -1,4 +1,4 @@
-export const WORLD_MODES = Object.freeze(["daily", "endless", "rush", "duel", "league"]);
+export const WORLD_MODES = Object.freeze(["daily", "endless", "rush", "duel", "party", "league"]);
 export const PLAYER_PANELS = Object.freeze(["missions", "shop", "profile", "settings"]);
 export const DEFAULT_WORLD_PATH = "/play/daily";
 
@@ -34,7 +34,13 @@ export function parseWorldPath(pathname) {
 }
 
 export function safeWorldDestination(destination, fallback = DEFAULT_WORLD_PATH) {
-  return parseWorldPath(destination)?.path || fallback;
+  if (typeof destination !== "string" || !destination.startsWith("/") || destination.startsWith("//")) return fallback;
+  const [pathname, query = ""] = destination.split("?", 2);
+  const route = parseWorldPath(pathname);
+  if (!route) return fallback;
+  if (route.mode !== "party") return route.path;
+  const code = new URLSearchParams(query).get("room")?.toUpperCase() || "";
+  return /^[A-HJ-NP-Z2-9]{6}$/.test(code) ? `${route.path}?room=${code}` : route.path;
 }
 
 export function legacyWorldDestination(search = "") {

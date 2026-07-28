@@ -5,7 +5,7 @@ export const AUTH_INTENT_KEY = "wordle-world-auth-intent";
 export const GUEST_DAILY_KEY = "wordle-world-guest-daily";
 const AUTH_INTENT_MAX_AGE_MS = 30 * 60 * 1000;
 
-const PROTECTED_MODES = new Set(["endless", "rush", "duel", "league"]);
+const PROTECTED_MODES = new Set(["endless", "rush", "duel", "party", "league"]);
 
 export const AUTH_PRESENTATIONS = {
   daily: {
@@ -31,6 +31,12 @@ export const AUTH_PRESENTATIONS = {
     title: "Enter Ranked Duels",
     subtitle: "Race a matched rival and climb the competitive ladder.",
     action: "Enter the arena",
+  },
+  party: {
+    kicker: "Room access",
+    title: "Join the Party Room",
+    subtitle: "Sign in to race the same three words with friends or demo rivals.",
+    action: "Enter the room",
   },
   league: {
     kicker: "Season access",
