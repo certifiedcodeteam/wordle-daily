@@ -9,8 +9,25 @@ import "./party.css";
 
 const ROOM_STORAGE_KEY = "wordle-world-active-party";
 const COMPLETE_STATES = new Set(["complete", "cancelled"]);
+const PARTY_STATUS_BACKOFF_MS = 15000;
+const PARTY_ACTIVE_SYNC_MS = 15000;
+const PARTY_OVERDUE_SYNC_MS = 10000;
 /** @type {any} */
 const partyEntities = base44.entities;
+
+function sortPartyParticipants(participants) {
+  return [...participants]
+    .sort((left, right) => {
+      const leftScore = (left.total_score || 0) + (["playing", "solved"].includes(left.status) ? left.round_score || 0 : 0);
+      const rightScore = (right.total_score || 0) + (["playing", "solved"].includes(right.status) ? right.round_score || 0 : 0);
+      return rightScore - leftScore
+        || (right.rounds_solved || 0) - (left.rounds_solved || 0)
+        || (left.total_guesses || 0) - (right.total_guesses || 0)
+        || (left.total_elapsed_ms || 0) - (right.total_elapsed_ms || 0)
+        || String(left.handle || "").localeCompare(String(right.handle || ""));
+    })
+    .map((participant, index) => ({ ...participant, rank: index + 1 }));
+}
 
 export default function PartyMode({ GameComponent, gameProps, locationSearch, onHudChange }) {
   const [snapshot, setSnapshot] = useState(null);
@@ -23,14 +40,46 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
   const [now, setNow] = useState(Date.now());
   const autoJoined = useRef(false);
   const lastPresence = useRef({ activity: "", at: 0 });
+  const statusInFlight = useRef(false);
+  const statusBackoffUntil = useRef(0);
+  const statusRetryTimer = useRef(0);
+  const pendingStatusRequest = useRef(null);
+  const settlementRequested = useRef("");
   const room = snapshot?.room;
   const self = snapshot?.self;
 
   const loadRoom = useCallback(async (roomId, silent = false) => {
-    if (!roomId) return;
+    if (!roomId) return false;
+    const queueRequest = () => {
+      const pending = pendingStatusRequest.current;
+      pendingStatusRequest.current = { roomId, silent: pending ? pending.silent && silent : silent };
+    };
+    const schedulePendingRequest = () => {
+      if (statusRetryTimer.current || !pendingStatusRequest.current) return;
+      const delay = Math.max(0, statusBackoffUntil.current - Date.now()) + 100;
+      statusRetryTimer.current = window.setTimeout(() => {
+        statusRetryTimer.current = 0;
+        const pending = pendingStatusRequest.current;
+        pendingStatusRequest.current = null;
+        if (pending) loadRoom(pending.roomId, pending.silent);
+      }, delay);
+    };
+    if (statusInFlight.current) {
+      queueRequest();
+      return false;
+    }
+    if (Date.now() < statusBackoffUntil.current) {
+      queueRequest();
+      schedulePendingRequest();
+      return false;
+    }
+    statusInFlight.current = true;
+    let succeeded = false;
     if (!silent) setBusy("loading");
     try {
       const next = await worldApi.partyStatus(roomId);
+      statusBackoffUntil.current = 0;
+      succeeded = true;
       setSnapshot(next);
       setError("");
       if (!COMPLETE_STATES.has(next.room.status)) window.localStorage.setItem(ROOM_STORAGE_KEY, next.room.id);
@@ -38,7 +87,21 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
     } catch (nextError) {
       if (!silent) setError(nextError.message);
       if (nextError.code === "room_not_found") window.localStorage.removeItem(ROOM_STORAGE_KEY);
-    } finally { if (!silent) setBusy(""); }
+      if (nextError.status === 429) {
+        statusBackoffUntil.current = Date.now() + PARTY_STATUS_BACKOFF_MS;
+        queueRequest();
+      }
+    } finally {
+      statusInFlight.current = false;
+      if (!silent) setBusy("");
+      schedulePendingRequest();
+    }
+    return succeeded;
+  }, []);
+
+  useEffect(() => () => {
+    if (statusRetryTimer.current) window.clearTimeout(statusRetryTimer.current);
+    pendingStatusRequest.current = null;
   }, []);
 
   const action = useCallback(async (name, request) => {
@@ -47,6 +110,10 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
     try {
       const next = await request();
       if (next?.room) {
+        statusBackoffUntil.current = 0;
+        if (statusRetryTimer.current) window.clearTimeout(statusRetryTimer.current);
+        statusRetryTimer.current = 0;
+        pendingStatusRequest.current = null;
         setSnapshot(next);
         window.localStorage.setItem(ROOM_STORAGE_KEY, next.room.id);
         trackWorld(`party_${name}`, { demo: Boolean(next.room.demo) });
@@ -71,27 +138,78 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
 
   useEffect(() => {
     if (!room?.id || room.status === "cancelled") return undefined;
-    const interval = window.setInterval(() => {
-      setNow(Date.now());
-      loadRoom(room.id, true);
-    }, room.status === "active" ? 4000 : 1800);
     const subscriptions = [];
-    const refresh = (event) => {
-      const eventRoomId = event.data?.room_id || (event.id === room.id ? room.id : "");
-      if (eventRoomId === room.id) loadRoom(room.id, true);
+    const patchRoom = (event) => {
+      if (event.id !== room.id || event.type === "delete" || !event.data) return;
+      const nextStatus = event.data.status;
+      setSnapshot((current) => current?.room?.id === room.id ? { ...current, room: { ...current.room, ...event.data, id: room.id } } : current);
+      if (["between_rounds", "complete"].includes(nextStatus) && nextStatus !== room.status) loadRoom(room.id, true);
     };
-    try { subscriptions.push(partyEntities.PartyRoom.subscribe(refresh)); } catch { /* polling remains authoritative */ }
-    try { subscriptions.push(partyEntities.PartyParticipant.subscribe(refresh)); } catch { /* polling remains authoritative */ }
+    const patchParticipant = (event) => {
+      setSnapshot((current) => {
+        if (!current?.room || current.room.id !== room.id) return current;
+        const previous = current.participants.find((participant) => participant.id === event.id);
+        if (!previous && event.data?.room_id !== room.id) return current;
+        const records = event.type === "delete"
+          ? current.participants.filter((participant) => participant.id !== event.id)
+          : current.participants.map((participant) => participant.id === event.id ? { ...participant, ...event.data, id: event.id } : participant);
+        if (!previous && event.type !== "delete" && event.data) records.push({ ...event.data, id: event.id });
+        const participants = sortPartyParticipants(records);
+        const self = participants.find((participant) => participant.user_id === current.self?.user_id) || current.self;
+        return { ...current, participants, self };
+      });
+    };
+    try { subscriptions.push(partyEntities.PartyRoom.subscribe(patchRoom)); } catch { /* scheduled status sync remains available */ }
+    try { subscriptions.push(partyEntities.PartyParticipant.subscribe(patchParticipant)); } catch { /* scheduled status sync remains available */ }
     return () => {
-      window.clearInterval(interval);
       subscriptions.forEach((unsubscribe) => unsubscribe?.());
     };
   }, [loadRoom, room?.id, room?.status]);
 
+  useEffect(() => {
+    if (!room?.id || COMPLETE_STATES.has(room.status)) return undefined;
+    if (["countdown", "between_rounds"].includes(room.status)) {
+      const target = new Date(room.status === "countdown" ? room.countdown_ends_at : room.transition_ends_at).getTime();
+      const timeout = window.setTimeout(() => loadRoom(room.id, true), Math.max(250, target - Date.now() + 150));
+      return () => window.clearTimeout(timeout);
+    }
+    const overdue = room.status === "active" && Date.now() >= new Date(room.deadline).getTime();
+    const interval = window.setInterval(() => loadRoom(room.id, true), overdue ? PARTY_OVERDUE_SYNC_MS : room.status === "active" ? PARTY_ACTIVE_SYNC_MS : 30000);
+    return () => window.clearInterval(interval);
+  }, [loadRoom, room?.countdown_ends_at, room?.id, room?.status, room?.transition_ends_at]);
+
+  useEffect(() => {
+    if (!room?.id || room.status !== "active" || !snapshot?.participants?.length) return;
+    const allTerminal = snapshot.participants.every((participant) => ["solved", "finished", "forfeit"].includes(participant.status));
+    const settlementKey = `${room.id}:${room.round_number}`;
+    if (!allTerminal || settlementRequested.current === settlementKey) return;
+    loadRoom(room.id, true).then((succeeded) => {
+      settlementRequested.current = succeeded ? settlementKey : "";
+    });
+  }, [loadRoom, room?.id, room?.round_number, room?.status, snapshot?.participants]);
+
+  useEffect(() => {
+    if (!room?.id || room.status !== "active" || !room.deadline) return undefined;
+    const deadline = new Date(room.deadline).getTime();
+    const timeout = window.setTimeout(() => loadRoom(room.id, true), Math.max(250, deadline - Date.now() + 150));
+    return () => window.clearTimeout(timeout);
+  }, [loadRoom, room?.deadline, room?.id, room?.status]);
+
+  useEffect(() => {
+    if (!room || !["countdown", "active", "between_rounds"].includes(room.status)) return undefined;
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [room?.status]);
+
   const sendPresence = useCallback((activity) => {
     if (!room?.id) return;
     const timestamp = Date.now();
-    if (timestamp - lastPresence.current.at < 1600 || (lastPresence.current.activity === activity && timestamp - lastPresence.current.at < 5000)) return;
+    setSnapshot((current) => current?.self ? {
+      ...current,
+      self: { ...current.self, live_state: activity },
+      participants: current.participants.map((participant) => participant.id === current.self.id ? { ...participant, live_state: activity } : participant),
+    } : current);
+    if (timestamp - lastPresence.current.at < 5000 || (lastPresence.current.activity === activity && timestamp - lastPresence.current.at < 15000)) return;
     lastPresence.current = { activity, at: timestamp };
     worldApi.partyPresence(room.id, activity).catch(() => {});
   }, [room?.id]);
@@ -131,6 +249,7 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
     if (!room) return;
     await action("leave", () => worldApi.leaveParty(room.id));
     window.localStorage.removeItem(ROOM_STORAGE_KEY);
+    pendingStatusRequest.current = null;
     setSnapshot(null);
   };
 
@@ -143,10 +262,12 @@ export default function PartyMode({ GameComponent, gameProps, locationSearch, on
     return <PartyTransition snapshot={snapshot} seconds={Math.max(0, Math.ceil((target - now) / 1000))} />;
   }
 
+  const roundOverdue = now > new Date(room.deadline).getTime() + 3000;
   return <section className="party-live" aria-label="Party Room live match">
     <PartyScoreRail participants={snapshot.participants} selfId={self?.user_id} round={room.round_number} open={standingsOpen} />
     <div className="party-board-stage">
       <div className="party-live-strip"><span><Radio />{room.demo ? "Demo broadcast" : "Live room"}</span><strong>Round {room.round_number} of {room.round_count}</strong><button aria-expanded={standingsOpen} onClick={() => setStandingsOpen((value) => !value)}><Users />Standings</button><b>{formatClock(new Date(room.deadline).getTime() - now)}</b></div>
+      {roundOverdue && <div className="party-round-recovery" role="status"><span>Finalizing round</span><button disabled={busy === "loading"} onClick={() => loadRoom(room.id)}>{busy === "loading" ? <Loader2 /> : <RefreshCw />}Retry sync</button></div>}
       {self?.current_session_id ? <GameComponent key={self.current_session_id} mode="party" sessionId={self.current_session_id} {...gameProps} onHudChange={() => {}} onBattleRefresh={() => {}} onActivityChange={sendPresence} /> : <PartyMessage icon={Loader2} title="Preparing your board" text="The shared word is being sealed on the server." />}
     </div>
   </section>;

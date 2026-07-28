@@ -42,7 +42,7 @@
 .party-lobby-actions .party-primary, .party-lobby-actions .party-secondary { min-width: 170px; }
 .party-secondary.is-ready { color: var(--arena-green); border-color: var(--arena-green); }
 .party-live { width: 100%; height: 100%; display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); overflow: hidden; }
-.party-board-stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: 44px minmax(0, 1fr); border-left: 1px solid var(--arena-line); }
+.party-board-stage { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: 44px minmax(0, 1fr); border-left: 1px solid var(--arena-line); }
 .party-live-strip { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; border-bottom: 1px solid var(--arena-line); padding: 0 18px; font-variant-numeric: tabular-nums; }
 .party-live-strip span { display: flex; align-items: center; gap: 7px; color: var(--arena-orange); font-size: 9px; font-weight: 900; text-transform: uppercase; }
 .party-live-strip span svg { width: 13px; height: 13px; }
@@ -50,6 +50,9 @@
 .party-live-strip b { justify-self: end; font-size: 17px; }
 .party-live-strip button { display: none; align-items: center; gap: 5px; border: 0; color: var(--arena-ink); background: transparent; font-size: 9px; font-weight: 850; }
 .party-live-strip button svg { width: 13px; height: 13px; }
+.party-round-recovery { position: absolute; z-index: 7; top: 54px; right: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--arena-orange); border-radius: 5px; padding: 7px 8px 7px 11px; background: var(--arena-panel); box-shadow: 0 8px 24px rgb(30 27 22 / 12%); color: var(--arena-ink); font-size: 11px; font-weight: 800; }
+.party-round-recovery button { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 3px; padding: 6px 8px; background: var(--arena-orange); color: white; font: inherit; cursor: pointer; }
+.party-round-recovery button:disabled { opacity: .65; cursor: wait; }.party-round-recovery svg { width: 13px; height: 13px; }
 .party-score-rail { min-width: 0; overflow: auto; padding: 20px 14px; background: color-mix(in srgb, var(--arena-panel) 48%, transparent); }
 .party-score-rail > header { display: flex; align-items: end; justify-content: space-between; margin-bottom: 14px; padding: 0 4px; }
 .party-score-rail > header span { color: var(--arena-orange); font-size: 9px; font-weight: 900; text-transform: uppercase; }

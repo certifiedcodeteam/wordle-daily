@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   deterministicPartySeed,
   fallbackPartyRecap,
+  hasSettledPartyRound,
   partyCodeFromBytes,
   partyProgressMask,
   partyRoundScore,
@@ -39,4 +40,11 @@ test("party progress hides letters and deterministic helpers stay stable", () =>
   const recap = fallbackPartyRecap([{ handle: "Ari", rank: 1, rounds_solved: 2 }]);
   assert.equal(recap.mvp, "Ari");
   assert.equal(recap.summary.includes("2 words"), true);
+});
+
+test("party settlement recognizes rounds already applied during retry", () => {
+  const participant = { round_results: [{ round: 1, score: 700 }] };
+  assert.equal(hasSettledPartyRound(participant, 1), true);
+  assert.equal(hasSettledPartyRound(participant, 2), false);
+  assert.equal(hasSettledPartyRound({}, 1), false);
 });

@@ -8,6 +8,7 @@ import {
   PARTY_ROUNDS,
   PARTY_TRANSITION_MS,
   fallbackPartyRecap,
+  hasSettledPartyRound,
   deterministicPartySeed,
   partyCodeFromBytes,
   partyProgressMask,
@@ -17,6 +18,7 @@ import {
 } from "./party-engine.js";
 
 const ROOM_IDLE_MS = 30 * 60 * 1000;
+const SETTLEMENT_STALE_MS = 10000;
 const BOT_HANDLES = ["Mira Vale", "Theo Quill", "Nova Reed"];
 const RECAP_SCHEMA = {
   type: "object",
@@ -208,14 +210,20 @@ async function applyPartyBots(admin, room, participants, now = Date.now()) {
 }
 
 async function settlePartyRound(admin, room, participants) {
-  const claimed = await admin.PartyRoom.updateMany({ id: room.id, settlement_status: "pending", version: room.version }, {
-    $set: { settlement_status: "working", version: room.version + 1 },
+  const now = new Date();
+  const staleWorking = room.settlement_status === "working"
+    && now.getTime() - new Date(room.last_activity_at).getTime() >= SETTLEMENT_STALE_MS;
+  if (room.settlement_status !== "pending" && !staleWorking) return await admin.PartyRoom.get(room.id);
+  const claimed = await admin.PartyRoom.updateMany({ id: room.id, settlement_status: room.settlement_status, version: room.version }, {
+    $set: { settlement_status: "working", last_activity_at: now.toISOString(), version: room.version + 1 },
   });
   if (!claimed.updated) return await admin.PartyRoom.get(room.id);
   room = await admin.PartyRoom.get(room.id);
+  participants = await admin.PartyParticipant.filter({ room_id: room.id }, "created_date", PARTY_MAX_PLAYERS);
   const active = participants.filter((item) => item.status !== "forfeit");
   const best = [...active].sort((left, right) => (right.round_score || 0) - (left.round_score || 0) || (left.elapsed_ms || 0) - (right.elapsed_ms || 0))[0];
   for (const participant of participants) {
+    if (hasSettledPartyRound(participant, room.round_number)) continue;
     const result = {
       round: room.round_number, solved: participant.status === "solved", score: participant.round_score || 0,
       guesses: participant.guesses_used || 0, elapsedMs: participant.elapsed_ms || 0,

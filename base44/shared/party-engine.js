@@ -23,6 +23,10 @@ export function rankPartyParticipants(participants) {
   return [...participants].sort(comparePartyParticipants).map((participant, index) => ({ ...participant, rank: index + 1 }));
 }
 
+export function hasSettledPartyRound(participant, roundNumber) {
+  return (participant.round_results || []).some((result) => result.round === roundNumber);
+}
+
 export function partyProgressMask(evaluation = []) {
   const symbols = { correct: "c", present: "p", absent: "a" };
   return evaluation.map((value) => symbols[value] || "a").join("");
